@@ -49,6 +49,7 @@ function renderMd(text) {
   return <div className="md">{out}</div>;
 }
 function textOf(msg) {
+  if (msg.compare) return (msg.results || []).map((r) => `[${getProvider(r.provider).name}]: ${r.error ? 'خطأ — ' + r.error : (r.content || '')}`).join('\n\n');
   if (typeof msg.content === 'string') return msg.content;
   if (Array.isArray(msg.content)) return msg.content.filter((c) => c.type === 'text').map((c) => c.text).join('\n');
   return '';
@@ -63,6 +64,8 @@ export default function Home() {
   const [providerId, setProviderId] = useState('auto');
   const [model, setModel] = useState('');
   const [deepThinking, setDeepThinking] = useState(false);
+  const [compareOn, setCompareOn] = useState(false); // وضع المقارنة: نفس السؤال لعدة مزودين دفعة واحدة
+  const [compareProviders, setCompareProviders] = useState([]); // المزودون المتنافسون المحددون
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -108,7 +111,8 @@ export default function Home() {
       const s = JSON.parse(localStorage.getItem('omni_sessions') || '[]');
       if (s.length) { setSessions(s); setCurrentId(s[0].id); }
       else { const first = { id: uid(), title: 'محادثة جديدة', messages: [], tokens: 0, createdAt: Date.now() }; setSessions([first]); setCurrentId(first.id); }
-      setKeys(loadKeyPool());
+      const loadedKeys = loadKeyPool();
+      setKeys(loadedKeys);
       setUser(JSON.parse(localStorage.getItem('omni_user') || 'null'));
       setPlan(localStorage.getItem('omni_plan') || 'free');
       const d = JSON.parse(localStorage.getItem('omni_daily') || 'null');
@@ -116,12 +120,32 @@ export default function Home() {
       setAppKey(localStorage.getItem('omni_appkey') || '');
       setCustomBase(localStorage.getItem('omni_custom_base') || '');
       setFlUrl(localStorage.getItem('omni_freellmapi_url') || FL_DEFAULT_URL);
-      setFlKey(localStorage.getItem('omni_freellmapi_key') || '');
+      const loadedFlKey = localStorage.getItem('omni_freellmapi_key') || '';
+      setFlKey(loadedFlKey);
+      // وضع المقارنة: يُحمّل بعد المفاتيح لأنه يعتمد عليها
+      const cmpEligible = (pid) => {
+        if (pid === 'ollama' || pid === 'custom') return false;
+        if (pid === 'pollinations') return true;
+        if (pid === 'freellmapi') return !!loadedFlKey.trim();
+        return (loadedKeys[pid] || []).some((k) => k.status !== 'exhausted');
+      };
+      let savedCmp = null;
+      try { savedCmp = JSON.parse(localStorage.getItem('omni_compare_providers') || 'null'); } catch {}
+      if (Array.isArray(savedCmp)) {
+        const valid = savedCmp.filter((id) => cmpEligible(id) && PROVIDERS.some((p) => p.id === id));
+        setCompareProviders(valid.length ? valid : ['pollinations']);
+        setCompareOn(localStorage.getItem('omni_compare_on') === '1' && valid.length > 0);
+      } else {
+        const dflt = ['groq', 'freellmapi', 'pollinations'].filter(cmpEligible);
+        setCompareProviders(dflt.length ? dflt : ['pollinations']);
+      }
     } catch {}
   }, []);
   useEffect(() => { try { localStorage.setItem('omni_sessions', JSON.stringify(sessions)); } catch {} }, [sessions]);
   useEffect(() => { saveKeyPool(keys); }, [keys]);
   useEffect(() => { try { localStorage.setItem('omni_daily', JSON.stringify(daily)); } catch {} }, [daily]);
+  useEffect(() => { try { localStorage.setItem('omni_compare_on', compareOn ? '1' : '0'); } catch {} }, [compareOn]);
+  useEffect(() => { try { localStorage.setItem('omni_compare_providers', JSON.stringify(compareProviders)); } catch {} }, [compareProviders]);
   useEffect(() => { chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: 'smooth' }); }, [sessions, loading]);
   // إغلاق القائمة/الدرج/النافذة بزر Escape — يعيد دائماً إلى عرض محادثة نظيف
   useEffect(() => {
@@ -228,6 +252,117 @@ export default function Home() {
     }
   }
 
+  // ---------- وضع المقارنة: نفس السؤال لعدة مزودين دفعة واحدة ----------
+  function isCompareEligible(pid) {
+    if (pid === 'ollama' || pid === 'custom') return false; // محلي / يحتاج إعداد نقطة نهاية يدوياً
+    if (pid === 'pollinations') return true; // بدون مفتاح
+    if (pid === 'freellmapi') return !!flKey.trim(); // يحتاج المفتاح الموحد المحفوظ
+    return (keys[pid] || []).some((k) => k.status !== 'exhausted');
+  }
+  function toggleCompareProvider(pid) {
+    setCompareProviders((prev) => {
+      if (prev.includes(pid)) {
+        if (prev.length <= 1) return prev; // يجب أن يبقى مزود واحد على الأقل
+        return prev.filter((x) => x !== pid);
+      }
+      return [...prev, pid].slice(0, 4); // حد أقصى 4 مزودين متنافسين
+    });
+  }
+  function enableCompare() {
+    const dflt = ['groq', 'freellmapi', 'pollinations'].filter((id) => isCompareEligible(id));
+    const avail = dflt.length ? dflt : PROVIDERS.filter((p) => isCompareEligible(p.id)).slice(0, 3).map((p) => p.id);
+    setCompareProviders(avail.length ? avail : ['pollinations']);
+    setCompareOn(true);
+  }
+  // محتوى رسالة للمزود عند الإرسال: رسائل المقارنة السابقة تتحول إلى ملخص نصي
+  function apiContentOf(m) {
+    if (m.compare) return 'نتائج مقارنة سابقة:\n' + (m.results || []).map((r) => `[${getProvider(r.provider).name}]: ${r.error ? 'خطأ — ' + r.error : (r.content || '')}`).join('\n');
+    return m.content;
+  }
+  function historyApiMessages(history, userMsg, apiContent) {
+    return history.map((m) => ({ role: m.role, content: (m.role === 'user' && m === userMsg) ? apiContent : apiContentOf(m) }));
+  }
+  // طلب واحد لمزود واحد (نفس مسار الإرسال العادي، دون التبديل التلقائي)
+  async function fetchOneProvider(pid, history, userMsg, userContent, imageAtt) {
+    const prov = getProvider(pid);
+    const apiContent = (imageAtt && prov.supportsVision)
+      ? [{ type: 'text', text: userContent || 'صف هذه الصورة وحلّلها.' }, { type: 'image_url', image_url: { url: imageAtt.dataUrl } }]
+      : userContent;
+    const apiMessages = historyApiMessages(history, userMsg, apiContent);
+    const modelName = pid === 'freellmapi' ? 'auto' : prov.models[0];
+    const t0 = Date.now();
+    try {
+      let data;
+      if (pid === 'freellmapi') {
+        if (!flKey.trim()) throw new Error('أضف المفتاح الموحد (freellmapi-…) من لوحة الراوتر في إعدادات FreeLLMAPI أولاً.');
+        const res = await fetch('/api/chat', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: apiMessages,
+            providerId: pid, model: modelName,
+            apiKeys: { ...keys, freellmapi: [{ value: flKey.trim(), status: 'active' }] },
+            baseURL: flUrl || FL_DEFAULT_URL, deepThinking
+          })
+        });
+        data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'فشل الطلب.');
+        data.via = 'عبر خادم الموقع';
+      } else {
+        const res = await fetch('/api/chat', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: apiMessages,
+            providerId: pid, model: modelName,
+            apiKeys: keys, deepThinking
+          })
+        });
+        data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'فشل الطلب.');
+      }
+      let content = data.content || '';
+      let reasoning = data.reasoning || null;
+      if (!reasoning && deepThinking && content.includes('التفكير:')) {
+        const parts = content.split('الإجابة:');
+        if (parts.length > 1) { reasoning = parts[0].replace('التفكير:', '').trim(); content = parts.slice(1).join('الإجابة:').trim(); }
+      }
+      const used = data.usage?.total_tokens || estimateTokens(content);
+      return { provider: pid, model: data.modelUsed || data.model || modelName, content, tokens: used, seconds: (Date.now() - t0) / 1000, reasoning, via: data.via || null, error: null };
+    } catch (e) {
+      return { provider: pid, model: modelName, content: '', tokens: 0, seconds: (Date.now() - t0) / 1000, reasoning: null, via: null, error: String(e.message || e) };
+    }
+  }
+  async function sendCompare(textOverride) {
+    const text = (textOverride ?? input).trim();
+    if (!text && attachments.length === 0) return;
+    if (daily.tokens >= planInfo.limit) { setError('بلغت حد الخطة اليومي (' + formatTokens(planInfo.limit) + ' توكن). راجع الأسعار للترقية أو انتظر الغد.'); setDrawer('pricing'); return; }
+    if (!current) return;
+    if (!compareProviders.length) { setError('اختر مزوداً واحداً على الأقل للمقارنة.'); return; }
+    setError('');
+    const attachText = attachments.filter((a) => a.kind === 'text').map((a) => `\n\n[ملف: ${a.name}]\n${a.content.slice(0, 12000)}`).join('');
+    const imageAtt = attachments.find((a) => a.kind === 'image');
+    const pdfNote = attachments.filter((a) => a.kind === 'pdf').map((a) => `\n[ملف PDF مرفق: ${a.name} — لم يُستخرج نصه، انسخ نصه والصقه.]`).join('');
+    const userContent = text + attachText + pdfNote;
+    const userMsg = { role: 'user', content: userContent, tokens: estimateTokens(userContent) };
+    const history = [...current.messages, userMsg];
+    updateSession(current.id, (s) => ({ ...s, title: s.messages.length === 0 ? text.slice(0, 40) || 'محادثة جديدة' : s.title, messages: history, tokens: (s.tokens || 0) + userMsg.tokens }));
+    setInput(''); setAttachments([]); setLoading(true);
+    try {
+      const settled = await Promise.allSettled(compareProviders.map((pid) => fetchOneProvider(pid, history, userMsg, userContent, imageAtt)));
+      const results = settled.map((r, i) => r.status === 'fulfilled' ? r.value : { provider: compareProviders[i], model: getProvider(compareProviders[i]).models[0], content: '', tokens: 0, seconds: 0, reasoning: null, via: null, error: String(r.reason || 'فشل الطلب.') });
+      const ok = results.filter((r) => !r.error);
+      if (ok.length > 1) {
+        const fastest = ok.reduce((a, b) => (a.seconds <= b.seconds ? a : b));
+        fastest.fastest = true;
+      }
+      const totalUsed = results.reduce((n, r) => n + (r.tokens || 0), 0);
+      const cmpMsg = { role: 'assistant', compare: true, results, tokens: totalUsed };
+      updateSession(current.id, (s) => ({ ...s, messages: [...s.messages, cmpMsg], tokens: (s.tokens || 0) + totalUsed }));
+      setDaily((d) => ({ ...d, tokens: d.tokens + totalUsed }));
+      if (ok.length === 0) setError('فشلت كل المزودين المحددين — تحقق من مفاتيحك ثم أعد المحاولة.');
+    } finally { setLoading(false); }
+  }
+  function sendCurrent(textOverride) { if (compareOn) sendCompare(textOverride); else sendMessage(textOverride); }
+
   // ---------- الإرسال ----------
   async function sendMessage(textOverride) {
     const text = (textOverride ?? input).trim();
@@ -248,7 +383,7 @@ export default function Home() {
     updateSession(current.id, (s) => ({ ...s, title: s.messages.length === 0 ? text.slice(0, 40) || 'محادثة جديدة' : s.title, messages: history, tokens: (s.tokens || 0) + userMsg.tokens }));
     setInput(''); setAttachments([]); setLoading(true);
     try {
-      const apiMessages = history.map((m) => ({ role: m.role, content: m.role === 'user' && m === userMsg ? apiContent : m.content }));
+      const apiMessages = historyApiMessages(history, userMsg, apiContent);
       const systemExtra = deepThinking
         ? 'فكّر خطوة بخطوة بعمق قبل الإجابة. ابدأ إجابتك بقسم قصير بعنوان "التفكير:" يلخّص خطوات تفكيرك (3-6 أسطر)، ثم ضع الإجابة النهائية بعد سطر "الإجابة:".'
         : 'أجب بدقة وبشكل مباشر ومنظّم.';
@@ -362,7 +497,15 @@ export default function Home() {
   const stats = useMemo(() => {
     const per = {};
     sessions.forEach((s) => s.messages.forEach((m) => {
-      if (m.role === 'assistant' && m.provider) {
+      if (m.compare) {
+        (m.results || []).forEach((r) => {
+          if (!r.error) {
+            const e = per[r.provider] || { replies: 0, tokens: 0 };
+            e.replies += 1; e.tokens += (r.tokens || 0);
+            per[r.provider] = e;
+          }
+        });
+      } else if (m.role === 'assistant' && m.provider) {
         const e = per[m.provider] || { replies: 0, tokens: 0 };
         e.replies += 1; e.tokens += (m.tokens || 0);
         per[m.provider] = e;
@@ -387,7 +530,7 @@ export default function Home() {
   }, [keys]);
   const hasGroqKey = (keys.groq || []).some((k) => k.status !== 'exhausted');
 
-  const currentModelLabel = providerId === 'auto' ? '⚡ تلقائي' : provider.name + (model ? ' · ' + model : '');
+  const currentModelLabel = compareOn ? '⚔️ مقارنة (' + compareProviders.length + ')' : (providerId === 'auto' ? '⚡ تلقائي' : provider.name + (model ? ' · ' + model : ''));
 
   return (
     <div className="app">
@@ -449,18 +592,23 @@ export default function Home() {
         </div>
 
         <div className="controls">
-          <select value={providerId} onChange={(e) => { setProviderId(e.target.value); setModel(''); }} aria-label="المزود">
-            <option value="auto">⚡ تلقائي — أفضل مزود متاح</option>
-            {PROVIDERS.map((p) => <option key={p.id} value={p.id}>{p.name}{p.needsKey ? '' : ' (بدون مفتاح)'}</option>)}
-          </select>
-          {providerId === 'freellmapi' ? (
-            <input type="text" value={model} onChange={(e) => setModel(e.target.value)} placeholder="auto — يختار الراوتر، أو اكتب اسم نموذج" aria-label="النموذج" dir="ltr" />
-          ) : (
-            <select value={model} onChange={(e) => setModel(e.target.value)} aria-label="النموذج">
-              {models.map((m) => <option key={m} value={m}>{m}</option>)}
-            </select>
+          {!compareOn && (
+            <>
+              <select value={providerId} onChange={(e) => { setProviderId(e.target.value); setModel(''); }} aria-label="المزود">
+                <option value="auto">⚡ تلقائي — أفضل مزود متاح</option>
+                {PROVIDERS.map((p) => <option key={p.id} value={p.id}>{p.name}{p.needsKey ? '' : ' (بدون مفتاح)'}</option>)}
+              </select>
+              {providerId === 'freellmapi' ? (
+                <input type="text" value={model} onChange={(e) => setModel(e.target.value)} placeholder="auto — يختار الراوتر، أو اكتب اسم نموذج" aria-label="النموذج" dir="ltr" />
+              ) : (
+                <select value={model} onChange={(e) => setModel(e.target.value)} aria-label="النموذج">
+                  {models.map((m) => <option key={m} value={m}>{m}</option>)}
+                </select>
+              )}
+            </>
           )}
           <button className={'toggle' + (deepThinking ? ' on' : '')} onClick={() => setDeepThinking(!deepThinking)} title="يطلب من النموذج التفكير خطوة بخطوة ويعرض قسم التفكير">🧠 تفكير عميق {deepThinking ? 'مفعّل' : 'متوقف'}</button>
+          <button className={'toggle' + (compareOn ? ' on' : '')} onClick={() => (compareOn ? setCompareOn(false) : enableCompare())} title="أرسل سؤالك لعدة مزودين في الوقت نفسه وقارن إجاباتهم جنباً إلى جنب">⚔️ مقارنة {compareOn ? 'مفعّلة' : 'متوقفة'}</button>
           {current && (
             <span className="actions">
               <button className="btn ghost small" onClick={() => copyText(current.messages.map((m) => (m.role === 'user' ? 'أنت: ' : 'OmniAI: ') + textOf(m)).join('\n\n'), 'all')}>{copied === 'all' ? '✓ تم النسخ' : '📋 نسخ الجلسة'}</button>
@@ -469,6 +617,24 @@ export default function Home() {
             </span>
           )}
         </div>
+
+        {compareOn && (
+          <div className="compare-picker">
+            <span className="compare-picker-title">⚔️ المزودون المتنافسون:</span>
+            {PROVIDERS.filter((p) => p.id !== 'ollama' && p.id !== 'custom').map((p) => {
+              const ok = isCompareEligible(p.id);
+              const checked = compareProviders.includes(p.id);
+              return (
+                <label key={p.id} className={'cmp-chip' + (checked ? ' on' : '') + (ok ? '' : ' disabled')}>
+                  <input type="checkbox" checked={checked} disabled={!ok} onChange={() => toggleCompareProvider(p.id)} />
+                  {p.name}
+                  {!ok && <small> — أضف مفتاحاً</small>}
+                </label>
+              );
+            })}
+            <span className="compare-picker-hint">سؤال واحد يُرسل للجميع في الوقت نفسه — والأسرع يظهر بشارة ⚡.</span>
+          </div>
+        )}
 
         <div className="chat" ref={chatRef}>
           <div className="chat-inner">
@@ -498,11 +664,46 @@ export default function Home() {
                 <p style={{ fontSize: 13, marginTop: 8 }}>أو استعمل <b>FreeLLMAPI</b> — راوتر سحابي مستضاف يجمع الحصص المجانية لـ 87 مزوداً (10.1 مليار توكن) خلف مفتاح موحد واحد، بدون Termux وبدون أي تثبيت: <button className="btn ghost small" onClick={() => setGuideOpen(true)}>🚀 دليل FreeLLMAPI — 10.1 مليار توكن</button></p>
                 <div className="chips">
                   {['اشرح لي الذكاء الاصطناعي ببساطة', 'اكتب لي كود بايثون لفرز قائمة', 'ما الفرق بين Groq و OpenRouter؟', 'لخّص هذا النص في 3 نقاط'].map((q) => (
-                    <button key={q} className="chip" onClick={() => sendMessage(q)}>{q}</button>
+                    <button key={q} className="chip" onClick={() => sendCurrent(q)}>{q}</button>
                   ))}
                 </div>
               </div>
             ) : current.messages.map((m, i) => (
+              m.compare ? (
+                <div key={i} className="compare-block">
+                  <div className="compare-head">⚔️ مقارنة بين {m.results.length} مزودين · {formatTokens(m.tokens || 0)} توكن</div>
+                  <div className="compare-grid">
+                    {(m.results || []).map((r, j) => (
+                      <div key={j} className={'compare-card' + (r.error ? ' failed' : '') + (r.fastest ? ' fastest' : '')}>
+                        <div className="compare-card-head">
+                          <b>{getProvider(r.provider).name}</b>
+                          {r.fastest && <span className="badge fast">⚡ الأسرع</span>}
+                          <span dir="ltr">{r.model || ''}</span>
+                        </div>
+                        {r.error ? (
+                          <div className="note">⚠️ {r.error}</div>
+                        ) : (
+                          <>
+                            {renderMd(r.content)}
+                            {r.reasoning && (
+                              <details className="think">
+                                <summary>🧠 التفكير العميق — اضغط لعرض/إخفاء خطوات التفكير</summary>
+                                <div style={{ marginTop: 6 }}>{renderMd(r.reasoning)}</div>
+                              </details>
+                            )}
+                          </>
+                        )}
+                        <div className="compare-card-foot">
+                          <span>{formatTokens(r.tokens || 0)} توكن</span>
+                          <span>{Number(r.seconds || 0).toFixed(1)} ثانية</span>
+                          {r.via && <span>المسار: {r.via}</span>}
+                          {!r.error && <button onClick={() => copyText(r.content, 'cmp' + i + '-' + j)}>{copied === 'cmp' + i + '-' + j ? '✓ تم النسخ' : '📋 نسخ'}</button>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
               <div key={i} className={'msg ' + m.role}>
                 <div className={'avatar ' + (m.role === 'user' ? 'user' : 'ai')}>{m.role === 'user' ? '👤' : '✦'}</div>
                 <div className="msg-body">
@@ -525,6 +726,7 @@ export default function Home() {
                   </div>
                 </div>
               </div>
+              )
             ))}
             {loading && <div className="msg"><div className="avatar ai">✦</div><div className="msg-body"><div className="typing"><i /><i /><i /></div><span style={{ fontSize: 13, color: 'var(--muted)' }}>جارٍ التفكير…</span></div></div>}
             {error && <div className="note" style={{ borderColor: 'rgba(248,113,113,.5)', background: 'rgba(248,113,113,.08)' }}>⚠️ {error}</div>}
@@ -542,10 +744,10 @@ export default function Home() {
           )}
           <div className="composer-row">
             <textarea ref={composerRef} value={input} onChange={(e) => setInput(e.target.value)} onPaste={onPaste}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendCurrent(); } }}
               placeholder="اكتب رسالتك… (Enter للإرسال، Shift+Enter لسطر جديد، الصق نصاً أو صورة بـ Ctrl+V)" />
             <button className="btn ghost" onClick={() => fileRef.current?.click()} title="رفع ملفات" aria-label="رفع ملفات">📎</button>
-            <button className="send-btn" onClick={() => sendMessage()} disabled={loading}>{loading ? '…' : 'إرسال'}</button>
+            <button className="send-btn" onClick={() => sendCurrent()} disabled={loading}>{loading ? '…' : 'إرسال'}</button>
           </div>
           <input ref={fileRef} type="file" multiple style={{ display: 'none' }} onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }} />
           <div className="token-line">
