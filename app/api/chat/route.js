@@ -11,14 +11,19 @@ export const dynamic = 'force-dynamic';
 export async function POST(req) {
   let body;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'طلب غير صالح (JSON).' }, { status: 400 }); }
-  const { messages = [], providerId = 'auto', model, apiKeys = {}, baseURL: customBase, deepThinking = false } = body;
+  const { messages = [], providerId = 'auto', model, apiKeys = {}, baseURL: customBase, deepThinking = false, lang = 'ar', skills = [] } = body;
   if (!Array.isArray(messages) || messages.length === 0) {
     return NextResponse.json({ error: 'لا توجد رسائل للإرسال.' }, { status: 400 });
   }
 
-  const systemExtra = deepThinking
+  // لغة الإجابة + المهارات المفعّلة (v1.7) — تُلحق بموجه النظام.
+  const langName = { ar: 'Arabic', en: 'English', fr: 'French', es: 'Spanish', de: 'German', tr: 'Turkish', ru: 'Russian', zh: 'Chinese', hi: 'Hindi', pt: 'Portuguese', it: 'Italian', id: 'Indonesian' }[lang] || 'Arabic';
+  const langRule = 'Always answer in ' + langName + ' unless the user explicitly asks for another language.';
+  const skillText = (Array.isArray(skills) ? skills : []).filter(Boolean).map((x) => String(x).slice(0, 800)).join('\n');
+  const skillRule = skillText ? '\n\nActive skills — follow them:\n' + skillText : '';
+  const systemExtra = (deepThinking
     ? 'فكّر خطوة بخطوة بعمق قبل الإجابة. ابدأ إجابتك بقسم قصير بعنوان "التفكير:" يلخّص خطوات تفكيرك (3-6 أسطر)، ثم ضع الإجابة النهائية بعد سطر "الإجابة:".'
-    : 'أجب بدقة وبشكل مباشر ومنظّم.';
+    : 'أجب بدقة وبشكل مباشر ومنظّم.') + '\n' + langRule + skillRule;
 
   const attempts = [];
   const providerIds = providerId === 'auto'

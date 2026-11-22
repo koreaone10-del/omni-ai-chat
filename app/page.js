@@ -4,6 +4,9 @@ import { PROVIDERS, getProvider, AUTO_ORDER } from '@/lib/providers';
 import { estimateTokens, formatTokens } from '@/lib/tokens';
 import { loadKeyPool, saveKeyPool, addKeyToPool, generateAppApiKey } from '@/lib/keys';
 import { detectIntent, ROUTE_LABELS } from '@/lib/intent';
+import { useSession, signIn, signOut } from 'next-auth/react';
+import { t, LANGS, isRTL } from '@/lib/i18n';
+import { BUILTIN_SKILLS } from '@/lib/skills';
 
 const PLANS = {
   free: { name: 'مجانية', price: '0$', limit: 100000, images: 5 },
@@ -17,34 +20,48 @@ const FL_DASHBOARD_URL = 'https://freellmapi-production-c529c3c7.up.railway.app/
 const PAGE_SIZE = 50; // نافذة عرض الرسائل — للجلسات الطويلة جداً
 
 // ---------- markdown خفيف (بدون مكتبات) ----------
-function inlineMd(text, keyPrefix) {
-  const parts = String(text).split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+// actions: { onPreviewHtml(code), onOpenUrl(url), onCopyCode(code), copiedCode } — معاينة HTML والروابط داخل التطبيق (v1.7)
+function inlineMd(text, keyPrefix, actions) {
+  const parts = String(text).split(/(\*\*[^*]+\*\*|`[^`]+`|https?:\/\/[^\s<>"')\]]+)/g);
   return parts.map((p, i) => {
     if (p.startsWith('**') && p.endsWith('**')) return <strong key={keyPrefix + i}>{p.slice(2, -2)}</strong>;
     if (p.startsWith('`') && p.endsWith('`')) return <code key={keyPrefix + i}>{p.slice(1, -1)}</code>;
+    if (/^https?:\/\//.test(p)) return <a key={keyPrefix + i} href={p} onClick={(e) => { e.preventDefault(); actions?.onOpenUrl?.(p); }}>{p}</a>;
     return <span key={keyPrefix + i}>{p}</span>;
   });
 }
-function renderMd(text) {
+function renderMd(text, actions) {
   const t = String(text || '');
   const blocks = t.split(/```(\w*)\n?([\s\S]*?)```/g);
   const out = [];
+  let curLang = '';
   for (let i = 0; i < blocks.length; i++) {
+    if (i % 3 === 1) { curLang = (blocks[i] || '').toLowerCase(); continue; } // لغة الكتلة
     if (i % 3 === 2) {
-      out.push(<pre key={'pre' + i} dir="ltr"><code>{blocks[i]}</code></pre>);
+      const code = blocks[i];
+      const isHtml = curLang === 'html';
+      out.push(
+        <div key={'pre' + i} className="code-block">
+          <div className="code-block-head">
+            <span dir="ltr">{curLang || 'code'}</span>
+            {isHtml && <button onClick={() => actions?.onPreviewHtml?.(code)}>👁 معاينة</button>}
+            <button onClick={() => actions?.onCopyCode?.(code)}>{actions?.copiedCode ? '✓ تم النسخ' : '📋 نسخ'}</button>
+          </div>
+          <pre dir="ltr"><code>{code}</code></pre>
+        </div>
+      );
       continue;
     }
-    if (i % 3 === 1) continue; // لغة الكتلة
     const lines = blocks[i].split('\n');
     let list = [];
-    const flush = () => { if (list.length) { out.push(<ul key={'ul' + out.length}>{list.map((li, j) => <li key={j}>{inlineMd(li, 'li' + j)}</li>)}</ul>); list = []; } };
+    const flush = () => { if (list.length) { out.push(<ul key={'ul' + out.length}>{list.map((li, j) => <li key={j}>{inlineMd(li, 'li' + j, actions)}</li>)}</ul>); list = []; } };
     lines.forEach((line, j) => {
-      if (line.startsWith('### ')) { flush(); out.push(<h3 key={'h' + i + j}>{inlineMd(line.slice(4), 'h')}</h3>); }
-      else if (line.startsWith('## ')) { flush(); out.push(<h2 key={'h' + i + j}>{inlineMd(line.slice(3), 'h')}</h2>); }
-      else if (line.startsWith('# ')) { flush(); out.push(<h1 key={'h' + i + j}>{inlineMd(line.slice(2), 'h')}</h1>); }
+      if (line.startsWith('### ')) { flush(); out.push(<h3 key={'h' + i + j}>{inlineMd(line.slice(4), 'h', actions)}</h3>); }
+      else if (line.startsWith('## ')) { flush(); out.push(<h2 key={'h' + i + j}>{inlineMd(line.slice(3), 'h', actions)}</h2>); }
+      else if (line.startsWith('# ')) { flush(); out.push(<h1 key={'h' + i + j}>{inlineMd(line.slice(2), 'h', actions)}</h1>); }
       else if (/^[-*]\s+/.test(line)) { list.push(line.replace(/^[-*]\s+/, '')); }
       else if (/^\d+\.\s+/.test(line)) { list.push(line.replace(/^\d+\.\s+/, '')); }
-      else if (line.trim()) { flush(); out.push(<p key={'p' + i + j}>{inlineMd(line, 'p' + j)}</p>); }
+      else if (line.trim()) { flush(); out.push(<p key={'p' + i + j}>{inlineMd(line, 'p' + j, actions)}</p>); }
     });
     flush();
   }
@@ -66,7 +83,69 @@ function subjectFromHistory(messages) {
   return textOf(last).replace(/https?:\/\/\S+/g, ' ').replace(/[#*`_[\]()]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 140);
 }
 
+// ---------- خلفية نجوم ذهبية متحركة (canvas خفيف، v1.7) ----------
+// شفافة وخافتة حتى يبقى النص مقروءاً؛ تُطفأ عند prefers-reduced-motion.
+function Starfield({ enabled }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!enabled) return;
+    if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const canvas = ref.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let raf = 0;
+    let stars = [];
+    let w = 0, h = 0;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const seed = () => {
+      w = window.innerWidth; h = window.innerHeight;
+      canvas.width = w * dpr; canvas.height = h * dpr;
+      canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const count = Math.max(40, Math.min(90, Math.floor((w * h) / 22000)));
+      stars = Array.from({ length: count }, () => ({
+        x: Math.random() * w, y: Math.random() * h,
+        r: 0.6 + Math.random() * 1.6,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.3 + Math.random() * 0.9,
+        vx: (Math.random() - 0.5) * 0.08,
+        vy: 0.02 + Math.random() * 0.08
+      }));
+    };
+    seed();
+    window.addEventListener('resize', seed);
+    const tick = (now) => {
+      ctx.clearRect(0, 0, w, h);
+      for (const st of stars) {
+        st.x += st.vx; st.y += st.vy;
+        if (st.y > h + 4) { st.y = -4; st.x = Math.random() * w; }
+        if (st.x > w + 4) st.x = -4;
+        if (st.x < -4) st.x = w + 4;
+        const tw = 0.25 + 0.55 * (0.5 + 0.5 * Math.sin(now / 1000 * st.speed + st.phase));
+        ctx.beginPath();
+        ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(251, 191, 36, ' + tw.toFixed(3) + ')';
+        ctx.fill();
+        if (st.r > 1.8) {
+          ctx.strokeStyle = 'rgba(251, 191, 36, ' + (tw * 0.5).toFixed(3) + ')';
+          ctx.lineWidth = 0.7;
+          ctx.beginPath();
+          ctx.moveTo(st.x - st.r * 3, st.y); ctx.lineTo(st.x + st.r * 3, st.y);
+          ctx.moveTo(st.x, st.y - st.r * 3); ctx.lineTo(st.x, st.y + st.r * 3);
+          ctx.stroke();
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', seed); };
+  }, [enabled]);
+  if (!enabled) return null;
+  return <canvas ref={ref} className="starfield" aria-hidden="true" />;
+}
+
 export default function Home() {
+  const { data: session } = useSession(); // جلسة Google OAuth (next-auth)
   const [sessions, setSessions] = useState([]);
   const [currentId, setCurrentId] = useState(null);
   const [input, setInput] = useState('');
@@ -84,15 +163,14 @@ export default function Home() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE); // نافذة الرسائل المعروضة
   const [authOpen, setAuthOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const googleUser = session?.user || null;
   const [plan, setPlan] = useState('free');
   const [daily, setDaily] = useState({ date: todayKey(), tokens: 0, images: 0 });
   const [keys, setKeys] = useState({});
   const [attachments, setAttachments] = useState([]);
   const [copied, setCopied] = useState('');
-  const [authStep, setAuthStep] = useState(1);
-  const [authContact, setAuthContact] = useState('');
-  const [authCode, setAuthCode] = useState('');
-  const [authSent, setAuthSent] = useState('');
+  const [authMsg, setAuthMsg] = useState('');
+  const [googleConfigured, setGoogleConfigured] = useState(null);
   const [newKeyProvider, setNewKeyProvider] = useState('groq');
   const [newKeyValue, setNewKeyValue] = useState('');
   const [customBase, setCustomBase] = useState(''); // نقطة نهاية مخصصة لمزود «custom» فقط
@@ -112,6 +190,18 @@ export default function Home() {
   const [vidResult, setVidResult] = useState(null);
   const [vidLoading, setVidLoading] = useState(false);
   const [showThink, setShowThink] = useState({});
+  const [lang, setLang] = useState('ar');
+  const [starsOn, setStarsOn] = useState(true);
+  const [preview, setPreview] = useState(null); // { kind: 'html', code } | { kind: 'url', url }
+  const [expandedCompare, setExpandedCompare] = useState(null); // { msg, idx }
+  const [payMsg, setPayMsg] = useState('');
+  const [activeSkills, setActiveSkills] = useState([]);
+  const [customSkills, setCustomSkills] = useState([]);
+  const [newSkillName, setNewSkillName] = useState('');
+  const [newSkillInstr, setNewSkillInstr] = useState('');
+  const [conn, setConn] = useState({ github: '', vercel: '', render: '' });
+  const [connStatus, setConnStatus] = useState({});
+  const [connMsg, setConnMsg] = useState('');
   const fileRef = useRef(null);
   const fileImageOnlyRef = useRef(null);
   const chatRef = useRef(null);
@@ -126,7 +216,8 @@ export default function Home() {
       else { const first = { id: uid(), title: 'محادثة جديدة', messages: [], tokens: 0, createdAt: Date.now() }; setSessions([first]); setCurrentId(first.id); }
       const loadedKeys = loadKeyPool();
       setKeys(loadedKeys);
-      setUser(JSON.parse(localStorage.getItem('omni_user') || 'null'));
+      const storedUser = JSON.parse(localStorage.getItem('omni_user') || 'null');
+      if (storedUser && storedUser.google) setUser(storedUser); // حسابات العرض التجريبي القديمة لا تُستعاد
       setPlan(localStorage.getItem('omni_plan') || 'free');
       const d = JSON.parse(localStorage.getItem('omni_daily') || 'null');
       if (d && d.date === todayKey()) setDaily(d);
@@ -141,6 +232,12 @@ export default function Home() {
         if (oldSingle.trim()) loadedFlKeys = [{ id: uid(), label: 'حساب 1', value: oldSingle.trim(), status: 'active', lastUsed: null, lastError: null }];
       }
       setFlKeys(loadedFlKeys);
+      const savedLang = localStorage.getItem('omni_lang');
+      if (savedLang) setLang(savedLang);
+      setStarsOn(localStorage.getItem('omni_stars') !== '0');
+      try { const a = JSON.parse(localStorage.getItem('omni_skills_active') || '[]'); if (Array.isArray(a)) setActiveSkills(a); } catch {}
+      try { const c = JSON.parse(localStorage.getItem('omni_custom_skills') || '[]'); if (Array.isArray(c)) setCustomSkills(c); } catch {}
+      try { const cn = JSON.parse(localStorage.getItem('omni_connections') || '{}'); if (cn && typeof cn === 'object') setConn({ github: cn.github || '', vercel: cn.vercel || '', render: cn.render || '' }); } catch {}
       // وضع المقارنة: يُحمّل بعد المفاتيح لأنه يعتمد عليها
       const cmpEligible = (pid) => {
         if (pid === 'ollama' || pid === 'custom') return false;
@@ -166,22 +263,50 @@ export default function Home() {
   useEffect(() => { try { localStorage.setItem('omni_compare_on', compareOn ? '1' : '0'); } catch {} }, [compareOn]);
   useEffect(() => { try { localStorage.setItem('omni_compare_providers', JSON.stringify(compareProviders)); } catch {} }, [compareProviders]);
   useEffect(() => { try { localStorage.setItem('omni_freellmapi_keys', JSON.stringify(flKeys)); } catch {} }, [flKeys]);
+  useEffect(() => { try { localStorage.setItem('omni_stars', starsOn ? '1' : '0'); } catch {} }, [starsOn]);
+  useEffect(() => { try { localStorage.setItem('omni_skills_active', JSON.stringify(activeSkills)); } catch {} }, [activeSkills]);
+  useEffect(() => { try { localStorage.setItem('omni_custom_skills', JSON.stringify(customSkills)); } catch {} }, [customSkills]);
+  useEffect(() => { try { localStorage.setItem('omni_connections', JSON.stringify(conn)); } catch {} }, [conn]);
   useEffect(() => { setVisibleCount(PAGE_SIZE); }, [currentId]); // جلسة جديدة = أول 50 رسالة
   useEffect(() => { chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: 'smooth' }); }, [sessions, loading]);
   // إغلاق القائمة/الدرج/الورقة/النافذة بزر Escape — يعيد دائماً إلى عرض محادثة نظيف
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === 'Escape') { setSidebarOpen(false); setDrawer(null); setAuthOpen(false); setGuideOpen(false); setSheet(null); }
+      if (e.key === 'Escape') { setSidebarOpen(false); setDrawer(null); setAuthOpen(false); setGuideOpen(false); setSheet(null); setPreview(null); setExpandedCompare(null); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+
+  // اتجاه الصفحة ولغتها من اختيار المستخدم (v1.7)
+  useEffect(() => {
+    try {
+      document.documentElement.lang = lang;
+      document.documentElement.dir = isRTL(lang) ? 'rtl' : 'ltr';
+      localStorage.setItem('omni_lang', lang);
+    } catch {}
+  }, [lang]);
+  // هل بيانات Google OAuth مضبوطة في الخادم؟ (رسالة واضحة بدل الفشل الصامت)
+  useEffect(() => {
+    fetch('/api/auth/config').then((r) => r.json()).then((d) => setGoogleConfigured(!!d.googleConfigured)).catch(() => setGoogleConfigured(false));
+  }, []);
+  // مزامنة حساب Google من جلسة next-auth إلى حالة الواجهة
+  useEffect(() => {
+    if (session?.user) {
+      const u = { contact: session.user.email || session.user.name, name: session.user.name, email: session.user.email, image: session.user.image, google: true };
+      setUser(u);
+      try { localStorage.setItem('omni_user', JSON.stringify(u)); } catch {}
+    }
+  }, [session]);
 
   const current = sessions.find((s) => s.id === currentId) || sessions[0];
   const totalTokens = useMemo(() => sessions.reduce((n, s) => n + (s.tokens || 0), 0), [sessions]);
   const planInfo = PLANS[plan];
   const remaining = Math.max(0, planInfo.limit - daily.tokens);
   const provider = getProvider(providerId === 'auto' ? 'groq' : providerId);
+  const tt = (k) => t(lang, k);
+  const dailyExhausted = daily.tokens >= planInfo.limit;
+  const previewActions = { onPreviewHtml: (code) => setPreview({ kind: 'html', code }), onOpenUrl: (url) => setPreview({ kind: 'url', url }), onCopyCode: (code) => copyText(code, 'codeblock'), copiedCode: copied === 'codeblock' };
 
   // ---------- مفاتيح FreeLLMAPI: تداول دوري + حالة كل مفتاح ----------
   // ترتيب الإرسال يبدأ من مؤشر متحرك (round-robin بين الطلبات)،
@@ -202,6 +327,7 @@ export default function Home() {
       : k)));
   }
   function saveFlUrl(v) { setFlUrl(v); try { localStorage.setItem('omni_freellmapi_url', v); } catch {} }
+  function saveCustomBase(v) { setCustomBase(v); try { localStorage.setItem('omni_custom_base', v); } catch {} }
   function addFlKey() {
     const v = newFlKey.trim();
     if (!v) return;
@@ -236,6 +362,66 @@ export default function Home() {
       }
     }
     setFlTest(results.join(' · '));
+  }
+
+  // ---------- المهارات: تعليمات تُلحق بموجه النظام (v1.7) ----------
+  function activeSkillInstructions() {
+    const out = [];
+    for (const id of activeSkills) {
+      if (id.startsWith('custom:')) {
+        const c = customSkills.find((x) => 'custom:' + x.id === id);
+        if (c) out.push(String(c.instructions || '').slice(0, 800));
+      } else {
+        const b = BUILTIN_SKILLS.find((x) => x.id === id);
+        if (b) out.push(b.instructions);
+      }
+    }
+    return out;
+  }
+  function toggleSkill(id) { setActiveSkills((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id])); }
+  function addCustomSkill() {
+    const name = newSkillName.trim();
+    const instr = newSkillInstr.trim();
+    if (!name || !instr) { setError('اكتب اسم المهارة وتعليماتها أولاً.'); return; }
+    const s = { id: uid(), name: name.slice(0, 40), instructions: instr.slice(0, 1000) };
+    setCustomSkills((p) => [...p, s]);
+    setActiveSkills((p) => [...p, 'custom:' + s.id]);
+    setNewSkillName(''); setNewSkillInstr(''); setError('');
+  }
+
+  // ---------- الربط: سياق حقيقي من خدمة موصولة يُضمَّن في المحادثة (v1.7) ----------
+  function connectionIntent(text) {
+    const tx = String(text || '');
+    if (/vercel|فيرسل|فيرسيل/i.test(tx) && /مشروع|مشاريع|project/i.test(tx)) return 'vercel';
+    if (/github|جيت\s?هب|غيت\s?هب|مستودع|مستودعات|repo/i.test(tx)) return 'github';
+    if (/render|ريندر/i.test(tx) && /خدم|service/i.test(tx)) return 'render';
+    return null;
+  }
+  async function connectionContextFor(text) {
+    const svc = connectionIntent(text);
+    if (!svc || !conn[svc]) return '';
+    try {
+      const action = svc === 'github' ? 'listRepos' : svc === 'vercel' ? 'listProjects' : 'listServices';
+      const r = await fetch('/api/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ service: svc, action, token: conn[svc] }), signal: AbortSignal.timeout(12000) });
+      const d = await r.json();
+      if (!r.ok) return '';
+      const items = d.repos || d.projects || d.services || [];
+      if (!items.length) return '\n\n[بيانات حقيقية من ' + svc + ': لا توجد عناصر بعد.]';
+      const lines = items.slice(0, 20).map((x) => '- ' + (x.name || x.id) + (x.url ? ' (' + x.url + ')' : '')).join('\n');
+      return '\n\n[بيانات حقيقية من ' + svc + ' — أجب بناءً عليها فقط:\n' + lines + ']';
+    } catch { return ''; }
+  }
+  async function testConnection(svc) {
+    const token = conn[svc];
+    if (!token) { setConnStatus((p) => ({ ...p, [svc]: 'missing' })); setConnMsg('ألصق التوكن أولاً ثم اضغط «اختبار الاتصال».'); return; }
+    setConnStatus((p) => ({ ...p, [svc]: 'testing' }));
+    try {
+      const action = svc === 'github' ? 'listRepos' : svc === 'vercel' ? 'listProjects' : 'listServices';
+      const r = await fetch('/api/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ service: svc, action, token }) });
+      const d = await r.json();
+      setConnStatus((p) => ({ ...p, [svc]: r.ok ? 'ok' : 'fail' }));
+      setConnMsg(r.ok ? svc + ' ✓ متصل — ' + (d.count ?? 0) + ' عنصر' : (d.error || 'فشل الاتصال'));
+    } catch (e) { setConnStatus((p) => ({ ...p, [svc]: 'fail' })); setConnMsg('تعذّر الاتصال: ' + String(e.message || e)); }
   }
 
   function updateSession(id, fn) { setSessions((prev) => prev.map((s) => (s.id === id ? fn(s) : s))); }
@@ -332,7 +518,7 @@ export default function Home() {
             messages: apiMessages,
             providerId: pid, model: modelName,
             apiKeys: { ...keys, freellmapi: sentFl },
-            baseURL: flUrl || FL_DEFAULT_URL, deepThinking
+            baseURL: flUrl || FL_DEFAULT_URL, deepThinking, lang, skills: activeSkillInstructions()
           })
         });
         data = await res.json();
@@ -345,7 +531,7 @@ export default function Home() {
           body: JSON.stringify({
             messages: apiMessages,
             providerId: pid, model: modelName,
-            apiKeys: keys, deepThinking
+            apiKeys: keys, deepThinking, lang, skills: activeSkillInstructions()
           })
         });
         data = await res.json();
@@ -364,17 +550,17 @@ export default function Home() {
     }
   }
 
-  async function sendCompare(textOverride) {
+  async function sendCompare(textOverride, opts = {}) {
     const text = (textOverride ?? input).trim();
     if (!text && attachments.length === 0) return;
-    if (daily.tokens >= planInfo.limit) { setError('بلغت حد الخطة اليومي (' + formatTokens(planInfo.limit) + ' توكن). راجع الأسعار للترقية أو انتظر الغد.'); setDrawer('pricing'); return; }
+    if (daily.tokens >= planInfo.limit) { setError(tt('dailyLimitReached')); setDrawer('pricing'); return; }
     if (!current) return;
     if (!compareProviders.length) { setError('اختر مزوداً واحداً على الأقل للمقارنة.'); return; }
     setError('');
     const attachText = attachments.filter((a) => a.kind === 'text').map((a) => `\n\n[ملف: ${a.name}]\n${a.content.slice(0, 12000)}`).join('');
     const imageAtt = attachments.find((a) => a.kind === 'image');
     const pdfNote = attachments.filter((a) => a.kind === 'pdf').map((a) => `\n[ملف PDF مرفق: ${a.name} — لم يُستخرج نصه، انسخ نصه والصقه.]`).join('');
-    const userContent = text + attachText + pdfNote;
+    const userContent = text + attachText + pdfNote + (opts.context || '');
     const userMsg = { role: 'user', content: userContent, tokens: estimateTokens(userContent), route: 'compare' };
     const history = [...current.messages, userMsg];
     updateSession(current.id, (s) => ({ ...s, title: s.messages.length === 0 ? text.slice(0, 40) || 'محادثة جديدة' : s.title, messages: history, tokens: (s.tokens || 0) + userMsg.tokens }));
@@ -399,14 +585,14 @@ export default function Home() {
   async function sendMessage(textOverride, opts = {}) {
     const text = (textOverride ?? input).trim();
     if (!text && attachments.length === 0) return;
-    if (daily.tokens >= planInfo.limit) { setError('بلغت حد الخطة اليومي (' + formatTokens(planInfo.limit) + ' توكن). راجع الأسعار للترقية أو انتظر الغد.'); setDrawer('pricing'); return; }
+    if (daily.tokens >= planInfo.limit) { setError(tt('dailyLimitReached')); setDrawer('pricing'); return; }
     if (!current) return;
     const deep = opts.deep || deepThinking;
     setError('');
     const attachText = attachments.filter((a) => a.kind === 'text').map((a) => `\n\n[ملف: ${a.name}]\n${a.content.slice(0, 12000)}`).join('');
     const imageAtt = attachments.find((a) => a.kind === 'image');
     const pdfNote = attachments.filter((a) => a.kind === 'pdf').map((a) => `\n[ملف PDF مرفق: ${a.name} — لم يُستخرج نصه، انسخ نصه والصقه.]`).join('');
-    let userContent = text + attachText + pdfNote;
+    let userContent = text + attachText + pdfNote + (opts.context || '');
     let apiContent = userContent;
     if (imageAtt && providerId !== 'auto' && provider.supportsVision) {
       apiContent = [{ type: 'text', text: userContent || 'صف هذه الصورة وحلّلها.' }, { type: 'image_url', image_url: { url: imageAtt.dataUrl } }];
@@ -434,7 +620,7 @@ export default function Home() {
             messages: apiMessages,
             providerId, model: modelName,
             apiKeys: { ...keys, freellmapi: sentFl },
-            baseURL: flUrl || FL_DEFAULT_URL, deepThinking: deep
+            baseURL: flUrl || FL_DEFAULT_URL, deepThinking: deep, lang, skills: activeSkillInstructions()
           })
         });
         data = await res.json();
@@ -448,7 +634,7 @@ export default function Home() {
             messages: apiMessages,
             providerId, model: providerId === 'auto' ? undefined : (model || provider.models[0]),
             apiKeys: keys, baseURL: providerId === 'custom' ? customBase : undefined,
-            deepThinking: deep
+            deepThinking: deep, lang, skills: activeSkillInstructions()
           })
         });
         data = await res.json();
@@ -521,7 +707,7 @@ export default function Home() {
   }
 
   // ---------- نقطة الدخول الواحدة للإرسال: الأداة الصريحة تفوز، ثم الكشف الذكي ----------
-  function sendCurrent(textOverride) {
+  async function sendCurrent(textOverride) {
     const text = (textOverride ?? input).trim();
     if (!text && attachments.length === 0) return;
     const tool = pendingTool;
@@ -532,9 +718,11 @@ export default function Home() {
     const intent = detectIntent(text, { hasImageAttachment: hasImage });
     if (intent.type === 'image') { genImageChat(textOverride); return; }
     if (intent.type === 'video') { genVideoChat(textOverride); return; }
-    if (intent.type === 'compare') { if (!compareOn) enableCompare(); sendCompare(textOverride); return; }
-    if (intent.type === 'deep') { sendMessage(textOverride, { deep: true }); return; }
-    if (compareOn) sendCompare(textOverride); else sendMessage(textOverride);
+    // سياق خدمة موصولة (GitHub/Vercel/Render) يُجلب أولاً إن سُئل عنها
+    const ctx = await connectionContextFor(text);
+    if (intent.type === 'compare') { if (!compareOn) enableCompare(); sendCompare(textOverride, { context: ctx }); return; }
+    if (intent.type === 'deep') { sendMessage(textOverride, { deep: true, context: ctx }); return; }
+    if (compareOn) sendCompare(textOverride, { context: ctx }); else sendMessage(textOverride, { context: ctx });
   }
   // اختيار أداة من ورقة "+": إن كان في الصندوق نص يُرسل فوراً، وإلا تُحفظ الأداة للرسالة التالية
   function chooseTool(tool) {
@@ -548,18 +736,18 @@ export default function Home() {
     if (tool === 'compare') { if (compareOn) setCompareOn(false); else enableCompare(); return; }
   }
 
-  // ---------- المصادقة التجريبية ----------
-  function sendAuthCode() {
-    if (!authContact.trim()) { setError('أدخل بريداً إلكترونياً أو رقم هاتف أولاً.'); return; }
-    const code = String(Math.floor(100000 + Math.random() * 900000));
-    setAuthSent(code); setAuthStep(2); setError('');
+  // ---------- المصادقة الحقيقية: Google OAuth عبر next-auth (v1.7) ----------
+  // الجلسة تُحفظ في ملف تعريف (cookie) آمن — إعادة فتح الموقع تسجّل الدخول تلقائياً.
+  async function googleLogin() {
+    setAuthMsg('');
+    if (googleConfigured === false) { setAuthMsg(tt('googleSetupMissing')); return; }
+    try { await signIn('google', { callbackUrl: '/' }); }
+    catch (e) { setAuthMsg('تعذّر فتح تسجيل الدخول: ' + String(e.message || e)); }
   }
-  function verifyAuthCode() {
-    if (authCode.trim() === authSent && authSent) {
-      const u = { contact: authContact.trim(), createdAt: Date.now() };
-      setUser(u); try { localStorage.setItem('omni_user', JSON.stringify(u)); } catch {}
-      setAuthOpen(false); setAuthStep(1); setAuthCode(''); setAuthSent('');
-    } else setError('الرمز غير صحيح — تحقق من الرمز الظاهر في النافذة وأعد المحاولة.');
+  async function googleLogout() {
+    try { await signOut({ callbackUrl: '/' }); } catch {}
+    setUser(null);
+    try { localStorage.removeItem('omni_user'); } catch {}
   }
 
   // ---------- المفاتيح ----------
@@ -606,7 +794,7 @@ export default function Home() {
     if (!current) return;
     const data = fmt === 'json'
       ? JSON.stringify(current, null, 2)
-      : '# ' + current.title + '\n\n' + current.messages.map((m) => (m.role === 'user' ? '## أنت' : '## OmniAI' + (m.provider ? ` (${m.provider} / ${m.model})` : '')) + '\n\n' + textOf(m) + '\n').join('\n');
+      : '# ' + current.title + '\n\n' + current.messages.map((m) => (m.role === 'user' ? '## أنت' : '## CHIBANI AI' + (m.provider ? ` (${m.provider} / ${m.model})` : '')) + '\n\n' + textOf(m) + '\n').join('\n');
     const blob = new Blob([data], { type: fmt === 'json' ? 'application/json' : 'text/markdown' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = (current.title || 'session').replace(/[^\w\-]+/g, '-') + '.' + (fmt === 'json' ? 'json' : 'md'); a.click();
   }
@@ -646,7 +834,7 @@ export default function Home() {
     return out;
   }, [keys]);
 
-  const currentModelLabel = compareOn ? '⚔️ مقارنة (' + compareProviders.length + ')' : (providerId === 'auto' ? '⚡ تلقائي' : provider.name + (model ? ' · ' + model : ''));
+  const currentModelLabel = compareOn ? '⚔️ ' + tt('compare') + ' (' + compareProviders.length + ')' : (providerId === 'auto' ? '⚡ تلقائي' : provider.name + (model ? ' · ' + model : ''));
   const modelBadge = (p) => {
     if (p.id === 'groq') return 'الأسرع';
     if (p.id === 'openai') return 'الأذكى';
@@ -660,21 +848,22 @@ export default function Home() {
 
   return (
     <div className="app">
+      <Starfield enabled={starsOn} />
       {/* خلفية معتمة للقائمة الجانبية على الهاتف — النقر عليها يغلقها */}
       {sidebarOpen && <div className="backdrop" onClick={() => setSidebarOpen(false)} aria-hidden="true" />}
 
       {/* الشريط الجانبي — كل التفاصيل هنا، لا شيء منها في الواجهة الرئيسية */}
       <aside className={'sidebar' + (sidebarOpen ? ' open' : '')}>
         <div className="sidebar-head">
-          <div className="logo">OmniAI <small>منصة ذكاء اصطناعي موحدة</small></div>
+          <div className="logo">CHIBANI AI <small>{tt('tagline')}</small></div>
           <button className="sidebar-close" onClick={() => setSidebarOpen(false)} aria-label="إغلاق القائمة">✕</button>
         </div>
-        <button className="btn btn-block" onClick={newChat}>+ محادثة جديدة</button>
+        <button className="btn btn-block" onClick={newChat}>{tt('newChat')}</button>
         <div className="stat-box">
-          الخطة: <b>{planInfo.name}</b> — {planInfo.price}<br />
-          توكنات اليوم: <b>{formatTokens(daily.tokens)}</b> / {formatTokens(planInfo.limit)} — متبقٍ <b>{formatTokens(remaining)}</b><br />
-          كل الجلسات: <b>{formatTokens(totalTokens)}</b> توكن · {sessions.length} جلسة<br />
-          {user ? <>الحساب: {user.contact}</> : 'لم تسجّل الدخول بعد'}
+          {tt('plan')}: <b>{planInfo.name}</b> — {planInfo.price}<br />
+          {tt('tokensToday')}: <b>{formatTokens(daily.tokens)}</b> / {formatTokens(planInfo.limit)} — {tt('remaining')} <b>{formatTokens(remaining)}</b><br />
+          {tt('allSessions')}: <b>{formatTokens(totalTokens)}</b> توكن · {sessions.length} {tt('sessions')}<br />
+          {googleUser ? <>{tt('account')}: {googleUser.email || googleUser.name}</> : tt('notLoggedIn')}
         </div>
         <div className="session-list">
           {sessions.map((s) => (
@@ -688,17 +877,23 @@ export default function Home() {
           ))}
         </div>
         <div className="sidebar-foot">
-          <button className="btn ghost" onClick={() => { setGuideOpen(true); setSidebarOpen(false); }}>🚀 FreeLLMAPI — 10.1 مليار توكن</button>
-          <button className="btn ghost" onClick={() => { setDrawer('freellmapi'); setSidebarOpen(false); }}>⚙️ إعدادات FreeLLMAPI {flKeys.length ? '✓ ' + flKeys.length : ''}</button>
-          <button className="btn ghost" onClick={() => { setDrawer('keys'); setSidebarOpen(false); }}>🔑 مدير المفاتيح</button>
-          <button className="btn ghost" onClick={() => { setDrawer('image'); setSidebarOpen(false); }}>🖼 توليد الصور</button>
-          <button className="btn ghost" onClick={() => { setDrawer('video'); setSidebarOpen(false); }}>🎬 توليد الفيديو</button>
-          <button className="btn ghost" onClick={() => { setDrawer('stats'); setSidebarOpen(false); }}>📊 لوحة المعلومات</button>
-          <button className="btn ghost" onClick={() => { setDrawer('pricing'); setSidebarOpen(false); }}>💎 الخطط والأسعار</button>
-          <button className="btn ghost" onClick={() => { setDrawer('settings'); setSidebarOpen(false); }}>⚙️ الإعدادات</button>
-          {user
-            ? <button className="btn ghost" onClick={() => { setUser(null); try { localStorage.removeItem('omni_user'); } catch {} }}>تسجيل الخروج ({user.contact})</button>
-            : <button className="btn ghost" onClick={() => { setAuthOpen(true); setSidebarOpen(false); }}>👤 تسجيل الدخول / إنشاء حساب</button>}
+          <label style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--muted)' }}>{tt('language')}</label>
+          <select value={lang} onChange={(e) => setLang(e.target.value)} aria-label={tt('language')}>
+            {LANGS.map((l) => <option key={l.code} value={l.code}>{l.native}</option>)}
+          </select>
+          <button className="btn ghost" onClick={() => { setDrawer('skills'); setSidebarOpen(false); }}>🎯 {tt('skills')}</button>
+          <button className="btn ghost" onClick={() => { setDrawer('connections'); setSidebarOpen(false); }}>🔗 {tt('connections')}</button>
+          <button className="btn ghost" onClick={() => { setGuideOpen(true); setSidebarOpen(false); }}>🚀 {tt('freellmapiGuide')}</button>
+          <button className="btn ghost" onClick={() => { setDrawer('freellmapi'); setSidebarOpen(false); }}>⚙️ {tt('freellmapi')} {flKeys.length ? '✓ ' + flKeys.length : ''}</button>
+          <button className="btn ghost" onClick={() => { setDrawer('keys'); setSidebarOpen(false); }}>🔑 {tt('keys')}</button>
+          <button className="btn ghost" onClick={() => { setDrawer('image'); setSidebarOpen(false); }}>🖼 {tt('imageGen')}</button>
+          <button className="btn ghost" onClick={() => { setDrawer('video'); setSidebarOpen(false); }}>🎬 {tt('videoGen')}</button>
+          <button className="btn ghost" onClick={() => { setDrawer('stats'); setSidebarOpen(false); }}>📊 {tt('stats')}</button>
+          <button className="btn ghost" onClick={() => { setDrawer('pricing'); setSidebarOpen(false); }}>💎 {tt('pricing')}</button>
+          <button className="btn ghost" onClick={() => { setDrawer('settings'); setSidebarOpen(false); }}>⚙️ {tt('settings')}</button>
+          {googleUser
+            ? <button className="btn ghost" onClick={googleLogout}>🚪 {tt('logout')} ({googleUser.name || googleUser.email})</button>
+            : <button className="btn ghost" onClick={() => { setAuthOpen(true); setSidebarOpen(false); }}>👤 {tt('login')}</button>}
         </div>
       </aside>
 
@@ -706,8 +901,12 @@ export default function Home() {
       <main className="main">
         <header className="topbar-main">
           <button className="menu-btn" onClick={() => setSidebarOpen(true)} aria-label="فتح القائمة">☰</button>
-          <span className="brand">OmniAI</span>
+          <span className="brand">CHIBANI AI</span>
           <span className="session-title">{current?.title || ''}</span>
+          <span className="plan-meter" title={tt('dailyTokens') + ': ' + formatTokens(daily.tokens) + ' / ' + formatTokens(planInfo.limit)}>
+            <span className="plan-meter-label">{formatTokens(daily.tokens)} / {formatTokens(planInfo.limit)}</span>
+            <span className="plan-meter-bar"><i style={{ width: Math.min(100, (daily.tokens / planInfo.limit) * 100) + '%' }} /></span>
+          </span>
           <span className="spacer" />
         </header>
 
@@ -715,7 +914,7 @@ export default function Home() {
           <div className="chat-inner">
             {!current || current.messages.length === 0 ? (
               <div className="empty">
-                <h2>مرحباً بك في OmniAI — كيف أساعدك اليوم؟</h2>
+                <h2>{tt('greeting')}</h2>
               </div>
             ) : (
               <>
@@ -731,21 +930,21 @@ export default function Home() {
                       <div className="compare-head">⚔️ مقارنة بين {m.results.length} مزودين · {formatTokens(m.tokens || 0)} توكن</div>
                       <div className="compare-grid">
                         {(m.results || []).map((r, j) => (
-                          <div key={j} className={'compare-card' + (r.error ? ' failed' : '') + (r.fastest ? ' fastest' : '')}>
+                          <div key={j} className={'compare-card' + (r.error ? ' failed' : '') + (r.fastest ? ' fastest winner' : '')} style={{ borderTop: '3px solid ' + (getProvider(r.provider).color || '#8b5cf6') }} onClick={() => { if (!r.error) setExpandedCompare({ msg: i, idx: j }); }}>
                             <div className="compare-card-head">
                               <b>{getProvider(r.provider).name}</b>
-                              {r.fastest && <span className="badge fast">⚡ الأسرع</span>}
+                              {r.fastest && <><span className="badge fast">{tt('fastest')}</span><span className="badge winner">{tt('winner')}</span></>}
                               <span dir="ltr">{r.model || ''}</span>
                             </div>
                             {r.error ? (
                               <div className="note">⚠️ {r.error}</div>
                             ) : (
                               <>
-                                {renderMd(r.content)}
+                                {renderMd(r.content, previewActions)}
                                 {r.reasoning && (
                                   <details className="think">
-                                    <summary>🧠 التفكير العميق — اضغط لعرض/إخفاء خطوات التفكير</summary>
-                                    <div style={{ marginTop: 6 }}>{renderMd(r.reasoning)}</div>
+                                    <summary>{tt('showThinking')}</summary>
+                                    <div style={{ marginTop: 6 }}>{renderMd(r.reasoning, previewActions)}</div>
                                   </details>
                                 )}
                               </>
@@ -754,7 +953,8 @@ export default function Home() {
                               <span>{formatTokens(r.tokens || 0)} توكن</span>
                               <span>{Number(r.seconds || 0).toFixed(1)} ثانية</span>
                               {r.via && <span>المسار: {r.via}</span>}
-                              {!r.error && <button onClick={() => copyText(r.content, 'cmp' + i + '-' + j)}>{copied === 'cmp' + i + '-' + j ? '✓ تم النسخ' : '📋 نسخ'}</button>}
+                              {!r.error && <button onClick={(e) => { e.stopPropagation(); copyText(r.content, 'cmp' + i + '-' + j); }}>{copied === 'cmp' + i + '-' + j ? '✓ تم النسخ' : '📋 نسخ'}</button>}
+                              {!r.error && <button onClick={(e) => { e.stopPropagation(); setExpandedCompare({ msg: i, idx: j }); }}>⤢ {tt('expand')}</button>}
                             </div>
                           </div>
                         ))}
@@ -765,7 +965,7 @@ export default function Home() {
                       <div className={'avatar ' + (m.role === 'user' ? 'user' : 'ai')}>{m.role === 'user' ? '👤' : '✦'}</div>
                       <div className="msg-body">
                         <div className="msg-meta">
-                          <span>{m.role === 'user' ? 'أنت' : 'OmniAI'}</span>
+                          <span>{m.role === 'user' ? 'أنت' : 'CHIBANI AI'}</span>
                           {m.provider && <span>المزود: {getProvider(m.provider).name} · {m.model}</span>}
                           {m.via && <span>المسار: {m.via}</span>}
                           <span>{formatTokens(m.tokens || estimateTokens(textOf(m)))} توكن</span>
@@ -782,11 +982,11 @@ export default function Home() {
                           </>
                         ) : (
                           <>
-                            {renderMd(textOf(m))}
+                            {renderMd(textOf(m, previewActions), previewActions)}
                             {m.reasoning && (
                               <details className="think" open={!!showThink[i]} onToggle={(e) => setShowThink((p) => ({ ...p, [i]: e.target.open }))}>
-                                <summary>🧠 التفكير العميق — اضغط لعرض/إخفاء خطوات التفكير</summary>
-                                <div style={{ marginTop: 6 }}>{renderMd(m.reasoning)}</div>
+                                <summary>{tt('showThinking')}</summary>
+                                <div style={{ marginTop: 6 }}>{renderMd(m.reasoning, previewActions)}</div>
                               </details>
                             )}
                             <div className="msg-actions">
@@ -801,7 +1001,7 @@ export default function Home() {
                 })}
               </>
             )}
-            {loading && <div className="msg"><div className="avatar ai">✦</div><div className="msg-body"><div className="typing"><i /><i /><i /></div><span style={{ fontSize: 13, color: 'var(--muted)' }}>جارٍ التفكير…</span></div></div>}
+            {loading && <div className="msg"><div className="avatar ai">✦</div><div className="msg-body">{deepThinking ? <div className="thinking-live">🧠 {tt('thinkingNow')}<br /><span>أحلّل سؤالك خطوة بخطوة قبل كتابة الإجابة النهائية…</span></div> : <><div className="typing"><i /><i /><i /></div><span style={{ fontSize: 13, color: 'var(--muted)' }}>جارٍ التفكير…</span></>}</div></div>}
             {error && <div className="note" style={{ borderColor: 'rgba(248,113,113,.5)', background: 'rgba(248,113,113,.08)' }}>⚠️ {error}</div>}
           </div>
         </div>
@@ -815,17 +1015,20 @@ export default function Home() {
               ))}
             </div>
           )}
+          {dailyExhausted && (
+            <div className="note" style={{ margin: '0 0 10px' }}>⚠️ {tt('dailyLimitReached')}{' '}<button className="btn small" onClick={() => setDrawer('pricing')}>{tt('pricing')}</button></div>
+          )}
           <div className="composer-top">
             <button className="model-pill-btn" onClick={() => setSheet('model')} aria-label="اختيار النموذج">{currentModelLabel} <span aria-hidden="true">⌄</span></button>
-            {deepThinking && <span className="mini-chip">🧠 تفكير عميق</span>}
+            {deepThinking && <span className="mini-chip">🧠 {tt('deepThinking')}</span>}
             {pendingTool && <span className="mini-chip">الأداة: {pendingTool === 'image' ? '🖼 توليد صورة' : '🎬 توليد فيديو'} <button onClick={() => setPendingTool(null)} aria-label="إلغاء الأداة">✕</button></span>}
           </div>
           <div className="composer-row">
             <button className="plus-btn" onClick={() => setSheet('tools')} title="إضافة أداة" aria-label="إضافة أداة">+</button>
             <textarea ref={composerRef} value={input} onChange={(e) => setInput(e.target.value)} onPaste={onPaste}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendCurrent(); } }}
-              aria-label="اكتب رسالتك" />
-            <button className="send-btn" onClick={() => sendCurrent()} disabled={loading}>{loading ? '…' : 'إرسال'}</button>
+              aria-label="اكتب رسالتك" disabled={loading || dailyExhausted} />
+            <button className="send-btn" onClick={() => sendCurrent()} disabled={loading || dailyExhausted}>{loading ? '…' : tt('send')}</button>
           </div>
           <input ref={fileRef} type="file" multiple style={{ display: 'none' }} onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }} />
           <input ref={fileImageOnlyRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }} />
@@ -839,7 +1042,7 @@ export default function Home() {
           <div className="sheet" role="dialog" aria-label="اختيار النموذج">
             <div className="sheet-grip" />
             <div className="sheet-head">
-              <h2>اختيار النموذج</h2>
+              <h2>{tt('chooseModel')}</h2>
               <button className="sidebar-close" style={{ display: 'inline-flex' }} onClick={() => setSheet(null)} aria-label="إغلاق">✕</button>
             </div>
             <div className="model-list">
@@ -909,7 +1112,7 @@ export default function Home() {
           <div className="sheet" role="dialog" aria-label="إضافة أداة">
             <div className="sheet-grip" />
             <div className="sheet-head">
-              <h2>إضافة إلى المحادثة</h2>
+              <h2>{tt('addToChat')}</h2>
               <button className="sidebar-close" style={{ display: 'inline-flex' }} onClick={() => setSheet(null)} aria-label="إغلاق">✕</button>
             </div>
             <div className="tool-list-sheet">
@@ -950,7 +1153,7 @@ export default function Home() {
           <div className="backdrop" style={{ display: 'block', zIndex: 65 }} onClick={() => setDrawer(null)} aria-hidden="true" />
           <div className="drawer">
             <div className="drawer-head">
-              <h2>{drawer === 'keys' ? '🔑 مدير المفاتيح' : drawer === 'freellmapi' ? '🚀 FreeLLMAPI — الراوتر المستضاف' : drawer === 'image' ? '🖼 توليد الصور' : drawer === 'video' ? '🎬 توليد الفيديو' : drawer === 'stats' ? '📊 لوحة المعلومات' : drawer === 'pricing' ? '💎 الخطط والأسعار' : '⚙️ الإعدادات'}</h2>
+              <h2>{drawer === 'keys' ? '🔑 ' + tt('keys') : drawer === 'freellmapi' ? '🚀 FreeLLMAPI — الراوتر المستضاف' : drawer === 'image' ? '🖼 ' + tt('imageGen') : drawer === 'video' ? '🎬 ' + tt('videoGen') : drawer === 'stats' ? '📊 ' + tt('stats') : drawer === 'pricing' ? '💎 ' + tt('pricing') : drawer === 'skills' ? '🎯 ' + tt('skills') : drawer === 'connections' ? '🔗 ' + tt('connections') : '⚙️ ' + tt('settings')}</h2>
               <button className="sidebar-close" style={{ display: 'inline-flex' }} onClick={() => setDrawer(null)} aria-label="إغلاق">✕</button>
             </div>
 
@@ -1086,21 +1289,75 @@ export default function Home() {
                     <b>{p.name}</b><div className="price">{p.price}</div>
                     <div>{formatTokens(p.limit)} توكن/يوم</div><div>{p.images} صورة/يوم</div>
                     {plan === id ? <div className="badge" style={{ marginTop: 8 }}>خطتك الحالية</div>
-                      : <button className="btn small" style={{ marginTop: 8 }} onClick={() => { alert('الدفع غير متصل بعد: لم يتم ربط Stripe في هذه النسخة، ولن يُخصم أي مبلغ. للترقية التجريبية اختر الخطة من الإعدادات.'); setPlan(id); try { localStorage.setItem('omni_plan', id); } catch {} }}>ترقية إلى {p.name}</button>}
+                      : <button className="btn small" style={{ marginTop: 8 }} onClick={() => setPayMsg(tt('paymentNotEnabled'))}>{tt('upgrade')} إلى {p.name}</button>}
                   </div>
                 ))}
               </div>
-              <div className="note">الخطة المجانية: 100 ألف توكن/يوم تقديرياً عبر المزودين المجانيين و5 صور/يوم. الحدود تُحسب من تقدير التوكنات المحلي ومن usage المزود عند توفره.</div>
+              {payMsg && <div className="note">{payMsg}</div>}
+              <div className="note">الخطة المجانية: 100 ألف توكن/يوم تقديرياً عبر المزودين المجانيين و5 صور/يوم. الحدود تُحسب من تقدير التوكنات المحلي ومن usage المزود عند توفره. عداد الاستخدام محلي في متصفحك (localStorage) وليس فوترة خادم — راجع الأسعار أعلاه.</div>
+            </>)}
+
+            {drawer === 'skills' && (<>
+              <p>المهارات المفعّلة تُضاف إلى تعليمات النموذج في كل رسالة — فعّل مهارة أو أكثر ثم أرسل سؤالك.</p>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '10px 0' }}>
+                {BUILTIN_SKILLS.map((sk) => {
+                  const on = activeSkills.includes(sk.id);
+                  return (<button key={sk.id} className={'cmp-chip' + (on ? ' on' : '')} onClick={() => toggleSkill(sk.id)}>{sk.icon} {sk.name}</button>);
+                })}
+              </div>
+              <h3>مهارة مخصصة</h3>
+              <div className="field"><label>{tt('customSkillName')}</label><input value={newSkillName} onChange={(e) => setNewSkillName(e.target.value)} placeholder="مثال: خبير تسويق" /></div>
+              <div className="field"><label>{tt('customSkillInstructions')}</label><textarea value={newSkillInstr} onChange={(e) => setNewSkillInstr(e.target.value)} rows={3} placeholder="اكتب تعليمات المهارة هنا…" /></div>
+              <button className="btn" onClick={addCustomSkill}>{tt('addSkill')}</button>
+              {customSkills.length === 0 ? <p style={{ marginTop: 10 }}>{tt('noSkills')}</p> : customSkills.map((sk) => {
+                const id = 'custom:' + sk.id;
+                const on = activeSkills.includes(id);
+                return (
+                  <div key={sk.id} className="key-row">
+                    <span style={{ flex: 1 }}>🛠 <b>{sk.name}</b><br /><small style={{ color: 'var(--muted)' }}>{String(sk.instructions).slice(0, 120)}</small></span>
+                    <button className={'btn small' + (on ? '' : ' ghost')} onClick={() => toggleSkill(id)}>{on ? 'مفعّلة ✓' : 'تفعيل'}</button>
+                    <button className="btn danger small" onClick={() => { setCustomSkills((p) => p.filter((x) => x.id !== sk.id)); setActiveSkills((p) => p.filter((x) => x !== id)); }}>حذف</button>
+                  </div>
+                );
+              })}
+            </>)}
+
+            {drawer === 'connections' && (<>
+              <p>اربط حساباتك لتسأل عنها في المحادثة — مثال: «اعرض مشاريعي في Vercel» أو «ما مستودعاتي في GitHub؟». التوكنات تُحفظ في متصفحك فقط، ولا تُرسل إلا إلى الخدمة نفسها، ولا تُسجَّل في أي سجل.</p>
+              {[
+                { id: 'github', name: 'GitHub', hint: 'Personal Access Token — من github.com/settings/tokens (صلاحية repo للقراءة)', action: 'listRepos' },
+                { id: 'vercel', name: 'Vercel', hint: 'Token — من vercel.com/account/tokens', action: 'listProjects' },
+                { id: 'render', name: 'Render', hint: 'API Key — من dashboard.render.com/account/api-keys', action: 'listServices' }
+              ].map((svc) => (
+                <div key={svc.id} style={{ marginBottom: 16 }}>
+                  <h3 style={{ marginBottom: 4 }}>{svc.name} {connStatus[svc.id] === 'ok' && <span className="badge">✓ {tt('connected')}</span>}{connStatus[svc.id] === 'fail' && <span className="badge exhausted">{tt('notConnected')}</span>}</h3>
+                  <p style={{ fontSize: 12.5 }}>{svc.hint}</p>
+                  <div className="field"><input type="password" value={conn[svc.id] || ''} onChange={(e) => setConn((p) => ({ ...p, [svc.id]: e.target.value }))} placeholder="الصق التوكن هنا…" dir="ltr" autoComplete="off" /></div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button className="btn ghost small" onClick={() => testConnection(svc.id)} disabled={connStatus[svc.id] === 'testing'}>{connStatus[svc.id] === 'testing' ? 'جارٍ الاختبار…' : '🔗 ' + tt('testConnection')}</button>
+                    {conn[svc.id] && <button className="btn danger small" onClick={() => { setConn((p) => ({ ...p, [svc.id]: '' })); setConnStatus((p) => ({ ...p, [svc.id]: undefined })); }}>حذف التوكن</button>}
+                  </div>
+                </div>
+              ))}
+              {connMsg && <div className="note blue">{connMsg}</div>}
+              <div className="note">ما يستطيع الموقع فعله بكل خدمة: GitHub — عرض مستودعاتك وقراءة ملف؛ Vercel — عرض مشاريعك؛ Render — عرض خدماتك. اسأل في المحادثة وسيُجلب السياق تلقائياً قبل الرد.</div>
             </>)}
 
             {drawer === 'settings' && (<>
-              <h3>الخطة</h3>
+              <h3>{tt('language')}</h3>
+              <select value={lang} onChange={(e) => setLang(e.target.value)} aria-label={tt('language')}>
+                {LANGS.map((l) => <option key={l.code} value={l.code}>{l.native}</option>)}
+              </select>
+              <h3>{tt('starsBg')}</h3>
+              <label className="cmp-chip" style={{ cursor: 'pointer' }}><input type="checkbox" checked={starsOn} onChange={(e) => setStarsOn(e.target.checked)} /> {tt('starsBg')}</label>
+              <p style={{ fontSize: 12.5 }}>نجوم ذهبية خافتة متحركة خلف الواجهة. تُطفأ تلقائياً عند تفعيل «تقليل الحركة» في جهازك.</p>
+              <h3>{tt('plan')}</h3>
               <select value={plan} onChange={(e) => { setPlan(e.target.value); try { localStorage.setItem('omni_plan', e.target.value); } catch {} }}>
                 {Object.entries(PLANS).map(([id, p]) => <option key={id} value={id}>{p.name} — {p.price}</option>)}
               </select>
               <h3>تصدير الجلسة الحالية</h3>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button className="btn ghost small" onClick={() => copyText(current?.messages.map((m) => (m.role === 'user' ? 'أنت: ' : 'OmniAI: ') + textOf(m)).join('\n\n') || '', 'all')}>{copied === 'all' ? '✓ تم النسخ' : '📋 نسخ الجلسة'}</button>
+                <button className="btn ghost small" onClick={() => copyText(current?.messages.map((m) => (m.role === 'user' ? 'أنت: ' : 'CHIBANI AI: ') + textOf(m)).join('\n\n') || '', 'all')}>{copied === 'all' ? '✓ تم النسخ' : '📋 نسخ الجلسة'}</button>
                 <button className="btn ghost small" onClick={() => exportSession('md')}>⬇ تصدير .md</button>
                 <button className="btn ghost small" onClick={() => exportSession('json')}>⬇ تصدير .json</button>
               </div>
@@ -1117,23 +1374,64 @@ export default function Home() {
         </>
       )}
 
-      {/* نافذة المصادقة */}
+      {/* عارض المعاينة داخل التطبيق: HTML معزول + روابط (v1.7) */}
+      {preview && (
+        <div className="modal-back preview-back" onClick={() => setPreview(null)}>
+          <div className="modal preview-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="preview-head">
+              <h2>{preview.kind === 'html' ? '👁 ' + tt('preview') + ' — HTML' : '🌐 ' + tt('openInApp')}</h2>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {preview.kind === 'html' && <button className="btn ghost small" onClick={() => copyText(preview.code, 'preview-html')}>{copied === 'preview-html' ? tt('copied') : tt('copy')}</button>}
+                {preview.kind === 'url' && <a className="btn ghost small" href={preview.url} target="_blank" rel="noreferrer">{tt('openInBrowser')}</a>}
+                <button className="sidebar-close" style={{ display: 'inline-flex' }} onClick={() => setPreview(null)} aria-label={tt('close')}>✕</button>
+              </div>
+            </div>
+            {preview.kind === 'html' ? (
+              <iframe title="html-preview" className="preview-frame" sandbox="allow-scripts" srcDoc={preview.code} />
+            ) : (
+              <>
+                <iframe title="url-preview" className="preview-frame" sandbox="allow-scripts allow-forms allow-popups" src={preview.url} />
+                <p className="preview-fallback">إن ظهرت الصفحة فارغة فالموقع يمنع العرض داخل إطار (X-Frame-Options) — <a href={preview.url} target="_blank" rel="noreferrer">{tt('openInBrowser')}</a></p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* بطاقة مقارنة موسّعة (ملء الشاشة) */}
+      {expandedCompare && (() => {
+        const em = current?.messages?.[expandedCompare.msg];
+        const er = em?.results?.[expandedCompare.idx];
+        if (!er) return null;
+        return (
+          <div className="modal-back preview-back" onClick={() => setExpandedCompare(null)}>
+            <div className="modal preview-modal" onClick={(e) => e.stopPropagation()} style={{ borderTop: '3px solid ' + (getProvider(er.provider).color || '#8b5cf6') }}>
+              <div className="preview-head">
+                <h2>{getProvider(er.provider).name} <span dir="ltr" style={{ fontSize: 12, color: 'var(--muted)' }}>{er.model || ''}</span> {er.fastest && <span className="badge winner">{tt('winner')}</span>}</h2>
+                <button className="sidebar-close" style={{ display: 'inline-flex' }} onClick={() => setExpandedCompare(null)} aria-label={tt('close')}>✕</button>
+              </div>
+              {er.error ? <div className="note">⚠️ {er.error}</div> : renderMd(er.content, previewActions)}
+              <div className="compare-card-foot">
+                <span>{formatTokens(er.tokens || 0)} توكن</span>
+                <span>{Number(er.seconds || 0).toFixed(1)} ثانية</span>
+                {er.via && <span>المسار: {er.via}</span>}
+                {!er.error && <button onClick={() => copyText(er.content, 'expcopy')}>{copied === 'expcopy' ? '✓ تم النسخ' : '📋 نسخ'}</button>}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* نافذة المصادقة — Google OAuth حقيقي + وضع ضيف (v1.7) */}
       {authOpen && (
         <div className="modal-back" onClick={() => setAuthOpen(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>👤 تسجيل الدخول / إنشاء حساب</h2>
-            <p>بالبريد الإلكتروني أو رقم الهاتف. <b>وضع تجريبي:</b> لا توجد خدمة SMS/بريد متصلة بعد، لذا يظهر رمز التحقق هنا في النافذة نفسها — في الإنتاج يُرسل عبر Twilio/Resend. لا ندّعي إرسال رسالة لم تُرسل.</p>
-            {authStep === 1 ? (<>
-              <div className="field"><label>البريد الإلكتروني أو رقم الهاتف</label><input value={authContact} onChange={(e) => setAuthContact(e.target.value)} placeholder="name@email.com أو +213…" dir="ltr" /></div>
-              {error && <div className="note">{error}</div>}
-              <button className="btn" onClick={sendAuthCode}>إرسال رمز التحقق (تجريبي)</button>
-            </>) : (<>
-              <div className="note green">🔐 رمزك التجريبي (يظهر هنا فقط لأن الوضع تجريبي): <b style={{ fontSize: 20, letterSpacing: 4 }} dir="ltr">{authSent}</b><br />أُرسل إلى: {authContact} — في الإنتاج يصل عبر SMS/بريد.</div>
-              <div className="field"><label>رمز التحقق (6 أرقام)</label><input value={authCode} onChange={(e) => setAuthCode(e.target.value)} placeholder="123456" dir="ltr" maxLength={6} /></div>
-              {error && <div className="note">{error}</div>}
-              <button className="btn" onClick={verifyAuthCode}>تأكيد الحساب</button>
-              <button className="btn ghost" style={{ marginTop: 8 }} onClick={() => setAuthStep(1)}>تغيير البريد/الهاتف</button>
-            </>)}
+            <h2>👤 {tt('login')}</h2>
+            <p>{tt('googleSigninNote')}</p>
+            <button className="btn btn-block" onClick={googleLogin}>🔵 {tt('loginGoogle')}</button>
+            {authMsg && <div className="note" style={{ marginTop: 12 }}>{authMsg}</div>}
+            <button className="btn ghost btn-block" style={{ marginTop: 10 }} onClick={() => setAuthOpen(false)}>{tt('guest')}</button>
+            <p style={{ marginTop: 12, fontSize: 12.5 }}>حسابك يُحفظ في ملف تعريف (cookie) آمن عبر next-auth — عند إعادة فتح الموقع تُسجَّل دخولك تلقائياً دون إدخال أي بيانات من جديد.</p>
           </div>
         </div>
       )}

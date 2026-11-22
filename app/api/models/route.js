@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   const safe = PROVIDERS.map((p) => ({
     id: p.id, name: p.name, baseURL: p.baseURL, needsKey: p.needsKey,
-    freeTier: p.freeTier, signup: p.signup, models: p.models, supportsVision: p.supportsVision
+    freeTier: p.freeTier, signup: p.signup, models: p.models, supportsVision: p.supportsVision, color: p.color || '#8b5cf6'
   }));
   return NextResponse.json({ providers: safe });
 }
