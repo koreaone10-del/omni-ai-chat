@@ -31,7 +31,7 @@ export async function POST(req) {
   }
   try {
     const r = await fetch(url.toString(), {
-      headers: { 'User-Agent': 'CHIBANI-AI-agent/2.1 (+https://omni-ai-chat-dbwk.vercel.app)', Accept: 'text/html,application/xhtml+xml,text/plain,*/*' },
+      headers: { 'User-Agent': 'CHIBANI-AI-agent/2.1 (+https://ai-worm-fraud.vercel.app)', Accept: 'text/html,application/xhtml+xml,text/plain,*/*' },
       signal: AbortSignal.timeout(12000),
       redirect: 'follow'
     });

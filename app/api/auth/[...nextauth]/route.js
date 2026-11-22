@@ -4,7 +4,7 @@ import GoogleProvider from 'next-auth/providers/google';
 // CHIBANI AI v1.7 — تسجيل دخول حقيقي بـ Google OAuth عبر next-auth.
 // المتغيرات المطلوبة (في Vercel → Settings → Environment Variables):
 //   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
-//   NEXTAUTH_URL=https://omni-ai-chat-dbwk.vercel.app
+//   NEXTAUTH_URL=https://ai-worm-fraud.vercel.app
 //   NEXTAUTH_SECRET (سلسلة عشوائية طويلة)
 // إن غابت بيانات Google: لا ينهار الموقع — يبقى المزوّد خارجاً،
 // وزر الدخول في الواجهة يعرض رسالة واضحة بدل الفشل الصامت.

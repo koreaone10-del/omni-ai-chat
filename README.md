@@ -5,7 +5,7 @@
 مبنية بـ Next.js 14 + React 18 + CSS خالص (بدون Tailwind) وبدون أي مفتاح API مكتوب في الكود.
 
 > **الاسم التجاري CHIBANI AI** — اسم المستودع `omni-ai-chat` ومشروع Vercel
-> `omni-ai-chat-dbwk` والنطاق لم تتغير، التغيير للعلامة الظاهرة فقط.
+> `ai-worm-fraud` والنطاق `https://ai-worm-fraud.vercel.app` (كان `omni-ai-chat-dbwk` حتى 22 تشرين الثاني 2026).
 
 ## التشغيل محلياً
 
@@ -112,13 +112,13 @@ npm run dev
    ثم APIs & Services ← Credentials ← Create Credentials ← OAuth client ID
    ← نوع التطبيق **Web application**.
 2. في **Authorised redirect URIs** أضف بالضبط:
-   `https://omni-ai-chat-dbwk.vercel.app/api/auth/callback/google`
+   `https://ai-worm-fraud.vercel.app/api/auth/callback/google`
 3. انسخ **Client ID** و **Client Secret**.
-4. في Vercel ← مشروع `omni-ai-chat-dbwk` ← Settings ← Environment Variables،
+4. في Vercel ← مشروع `ai-worm-fraud` ← Settings ← Environment Variables،
    أضف:
    - `GOOGLE_CLIENT_ID` = القيمة من الخطوة 3
    - `GOOGLE_CLIENT_SECRET` = القيمة من الخطوة 3
-   - `NEXTAUTH_URL` = `https://omni-ai-chat-dbwk.vercel.app`
+   - `NEXTAUTH_URL` = `https://ai-worm-fraud.vercel.app`
    - `NEXTAUTH_SECRET` = سلسلة عشوائية طويلة (مثال: `openssl rand -base64 32`)
 5. أعد النشر (Redeploy) من Vercel.
 
