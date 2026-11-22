@@ -77,10 +77,9 @@ export default function Home() {
   const [authSent, setAuthSent] = useState('');
   const [newKeyProvider, setNewKeyProvider] = useState('groq');
   const [newKeyValue, setNewKeyValue] = useState('');
-  const [customBase, setCustomBase] = useState('http://localhost:3001/v1');
-  const [flKey, setFlKey] = useState('');
-  const [flTest, setFlTest] = useState('');
-  const [guideOpen, setGuideOpen] = useState(false);
+  const [customBase, setCustomBase] = useState(''); // نقطة نهاية مخصصة لمزود «custom» فقط
+  const [quickKey, setQuickKey] = useState(''); // مفتاح Groq السريع في شاشة البداية
+  const [quickSaved, setQuickSaved] = useState('');
   const [appKey, setAppKey] = useState('');
   const [testResult, setTestResult] = useState('');
   const [imgPrompt, setImgPrompt] = useState('');
@@ -94,6 +93,7 @@ export default function Home() {
   const [showThink, setShowThink] = useState({});
   const fileRef = useRef(null);
   const chatRef = useRef(null);
+  const composerRef = useRef(null);
 
   // تحميل الحالة المحفوظة
   useEffect(() => {
@@ -107,8 +107,7 @@ export default function Home() {
       const d = JSON.parse(localStorage.getItem('omni_daily') || 'null');
       if (d && d.date === todayKey()) setDaily(d);
       setAppKey(localStorage.getItem('omni_appkey') || '');
-      setCustomBase(localStorage.getItem('omni_freellmapi_url') || 'http://localhost:3001/v1');
-      setFlKey(localStorage.getItem('omni_freellmapi_key') || '');
+      setCustomBase(localStorage.getItem('omni_custom_base') || '');
     } catch {}
   }, []);
   useEffect(() => { try { localStorage.setItem('omni_sessions', JSON.stringify(sessions)); } catch {} }, [sessions]);
@@ -174,76 +173,18 @@ export default function Home() {
     if (hasFile) e.preventDefault();
   }
 
-  // ---------- FreeLLMAPI ----------
-  // خادم Vercel لا يستطيع الوصول إلى localhost على جهاز المستخدم،
-  // لذا رابط localhost يُطلب مباشرة من المتصفح (نفس الجهاز)،
-  // والرابط العام (https) يمر عبر وكيل خادم الموقع /api/chat.
-  function isLocalRouterUrl(url) {
-    try {
-      const u = new URL(String(url || '').includes('://') ? url : 'http://' + url);
-      const h = u.hostname.toLowerCase();
-      return h === 'localhost' || h === '127.0.0.1' || h === '::1' || h === '[::1]';
-    } catch { return String(url || '').includes('localhost') || String(url || '').includes('127.0.0.1'); }
+  // ---------- البداية السريعة (بدون أي راوتر) ----------
+  function saveCustomBase(v) { setCustomBase(v); try { localStorage.setItem('omni_custom_base', v); } catch {} }
+  function saveQuickGroqKey() {
+    if (!quickKey.trim()) { setQuickSaved('أدخل مفتاح Groq أولاً — احصل عليه مجاناً من console.groq.com/keys.'); return; }
+    setKeys((p) => addKeyToPool(p, 'groq', quickKey.trim()));
+    setQuickKey('');
+    setQuickSaved('✓ تم حفظ مفتاح Groq — اكتب رسالتك الآن، وسيختار الوضع التلقائي أفضل مزود متاح.');
+    setProviderId('auto');
   }
-  function flPath() { return isLocalRouterUrl(customBase) ? 'مباشر من المتصفح' : 'عبر خادم الموقع'; }
-  function saveFlKey(v) { setFlKey(v); try { localStorage.setItem('omni_freellmapi_key', v); } catch {} }
-  function saveFlUrl(v) { setCustomBase(v); try { localStorage.setItem('omni_freellmapi_url', v); } catch {} }
-
-  async function testFreellmapi() {
-    const base = String(customBase || '').replace(/\/$/, '');
-    if (!base) { setFlTest('أدخل رابط الراوتر أولاً (الافتراضي http://localhost:3001/v1).'); return; }
-    if (!flKey.trim()) { setFlTest('أدخل المفتاح الموحد freellmapi-… من صفحة Keys في لوحة الراوتر أولاً.'); return; }
-    setFlTest('جارٍ اختبار الاتصال من متصفحك…');
-    try {
-      const r = await fetch(base + '/models', { headers: { Authorization: 'Bearer ' + flKey.trim() }, signal: AbortSignal.timeout(20000) });
-      if (!r.ok) {
-        const t = await r.text().catch(() => '');
-        setFlTest(r.status === 401 ? 'المفتاح غير صحيح (401) — تأكد من نسخ المفتاح الموحد كاملاً من لوحة الراوتر.' : 'الراوتر ردّ بالحالة ' + r.status + ': ' + t.slice(0, 150));
-        return;
-      }
-      const data = await r.json();
-      const n = Array.isArray(data.data) ? data.data.length : 0;
-      setFlTest('✓ الاتصال يعمل — الراوتر ردّ ويعرض ' + n + ' نموذجاً. المسار: ' + flPath() + '.');
-    } catch (e) {
-      setFlTest(isLocalRouterUrl(base)
-        ? 'تعذّر الوصول إلى الراوتر على هذا الجهاز. تأكد أن FreeLLMAPI يعمل (افتح http://localhost:3001 في متصفحك)، أو استعمل رابطاً عاماً عبر Cloudflare Tunnel / خادم VPS. الخطأ: ' + String(e.message || e)
-        : 'تعذّر الوصول إلى الرابط العام: ' + String(e.message || e));
-    }
-  }
-
-  // إرسال مباشر من المتصفح إلى راوتر localhost (نفس الجهاز)
-  async function sendDirectViaRouter(apiMessages, modelName, systemExtra) {
-    const base = String(customBase || '').replace(/\/$/, '');
-    const payload = {
-      model: modelName || 'auto',
-      messages: [{ role: 'system', content: systemExtra }, ...apiMessages],
-      temperature: 0.7
-    };
-    let r;
-    try {
-      r = await fetch(base + '/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + flKey.trim() },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(90000)
-      });
-    } catch (e) {
-      throw new Error('الراوتر لا يردّ على هذا الجهاز — تأكد أن FreeLLMAPI يعمل (افتح http://localhost:3001 في متصفحك) وأنه يسمح بالاتصال من المتصفح، أو استعمل رابطاً عاماً (Cloudflare Tunnel / VPS).');
-    }
-    if (!r.ok) {
-      const txt = await r.text().catch(() => '');
-      throw new Error(r.status === 401 ? 'المفتاح الموحد غير صحيح (401) — أعد نسخه كاملاً من صفحة Keys في لوحة الراوتر.' : 'الراوتر ردّ بالحالة ' + r.status + ': ' + txt.slice(0, 200));
-    }
-    const data = await r.json();
-    const choice = data.choices?.[0]?.message;
-    let content = choice?.content || '';
-    let reasoning = choice?.reasoning_content || data.choices?.[0]?.reasoning || null;
-    if (!reasoning && deepThinking && content.includes('التفكير:')) {
-      const parts = content.split('الإجابة:');
-      if (parts.length > 1) { reasoning = parts[0].replace('التفكير:', '').trim(); content = parts.slice(1).join('الإجابة:').trim(); }
-    }
-    const usage = data.usage || { total_tokens: estimateTokens(content) };
-    return { content, usage, modelUsed: data.model || modelName || 'auto', providerUsed: 'freellmapi', reasoning, via: 'مباشر من المتصفح' };
+  function tryWithoutKey() {
+    setProviderId('auto'); setModel('');
+    setTimeout(() => composerRef.current?.focus(), 50);
   }
 
   // ---------- الإرسال ----------
@@ -270,44 +211,18 @@ export default function Home() {
       const systemExtra = deepThinking
         ? 'فكّر خطوة بخطوة بعمق قبل الإجابة. ابدأ إجابتك بقسم قصير بعنوان "التفكير:" يلخّص خطوات تفكيرك (3-6 أسطر)، ثم ضع الإجابة النهائية بعد سطر "الإجابة:".'
         : 'أجب بدقة وبشكل مباشر ومنظّم.';
-      let data;
-      if (providerId === 'freellmapi') {
-        // --- FreeLLMAPI: مفتاح موحد + مساران (مباشر للـ localhost، وكيل للرابط العام) ---
-        if (!flKey.trim()) {
-          setError('أضف المفتاح الموحد (freellmapi-…) من لوحة الراوتر في إعدادات FreeLLMAPI أولاً.');
-          setDrawer('freellmapi');
-          return;
-        }
-        const modelName = (model || '').trim() || 'auto';
-        if (isLocalRouterUrl(customBase)) {
-          data = await sendDirectViaRouter(apiMessages, modelName, systemExtra);
-        } else {
-          const res = await fetch('/api/chat', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              messages: apiMessages,
-              providerId, model: modelName,
-              apiKeys: { ...keys, freellmapi: [{ value: flKey.trim(), status: 'active' }] },
-              baseURL: customBase, deepThinking
-            })
-          });
-          data = await res.json();
-          if (!res.ok) throw new Error(data.error || 'فشل الطلب.');
-          data.via = 'عبر خادم الموقع';
-        }
-      } else {
-        const res = await fetch('/api/chat', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: apiMessages,
-            providerId, model: providerId === 'auto' ? undefined : (model || provider.models[0]),
-            apiKeys: keys, baseURL: providerId === 'custom' ? customBase : undefined,
-            deepThinking
-          })
-        });
-        data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'فشل الطلب.');
-      }
+      // كل المزودين يمرون عبر وكيل خادم الموقع /api/chat — لا راوتر ولا localhost.
+      const res = await fetch('/api/chat', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: apiMessages,
+          providerId, model: providerId === 'auto' ? undefined : (model || provider.models[0]),
+          apiKeys: keys, baseURL: providerId === 'custom' ? customBase : undefined,
+          deepThinking
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'فشل الطلب.');
       const used = data.usage?.total_tokens || estimateTokens(data.content);
       const aiMsg = { role: 'assistant', content: data.content, provider: data.providerUsed, model: data.modelUsed, tokens: used, reasoning: data.reasoning || null, via: data.via || null };
       updateSession(current.id, (s) => ({ ...s, messages: [...s.messages, aiMsg], tokens: (s.tokens || 0) + used }));
@@ -341,7 +256,7 @@ export default function Home() {
     setTestResult('جارٍ اختبار المفتاح…');
     try {
       const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [{ role: 'user', content: 'قل: ok' }], providerId: pid, model: getProvider(pid).models[0], apiKeys: { [pid]: [keys[pid][idx]] }, baseURL: pid === 'freellmapi' ? customBase : undefined }) });
+        body: JSON.stringify({ messages: [{ role: 'user', content: 'قل: ok' }], providerId: pid, model: getProvider(pid).models[0], apiKeys: { [pid]: [keys[pid][idx]] } }) });
       const data = await res.json();
       setTestResult(res.ok ? 'المفتاح يعمل ✓ — رد المزود: ' + String(data.content || '').slice(0, 80) : 'المفتاح فشل: ' + (data.error || res.status));
     } catch (e) { setTestResult('تعذّر الاختبار: ' + String(e.message || e)); }
@@ -382,9 +297,31 @@ export default function Home() {
 
   const stats = useMemo(() => {
     const per = {};
-    sessions.forEach((s) => s.messages.forEach((m) => { if (m.role === 'assistant' && m.provider) per[m.provider] = (per[m.provider] || 0) + 1; }));
+    sessions.forEach((s) => s.messages.forEach((m) => {
+      if (m.role === 'assistant' && m.provider) {
+        const e = per[m.provider] || { replies: 0, tokens: 0 };
+        e.replies += 1; e.tokens += (m.tokens || 0);
+        per[m.provider] = e;
+      }
+    }));
     return { sessions: sessions.length, messages: sessions.reduce((n, s) => n + s.messages.length, 0), per };
   }, [sessions]);
+
+  // حالة المفاتيح: نشط / مستنفد لكل مزود — من تجمع المفاتيح المحفوظ في المتصفح
+  const keyStatus = useMemo(() => {
+    const out = {};
+    PROVIDERS.filter((p) => p.needsKey).forEach((p) => {
+      const list = keys[p.id] || [];
+      out[p.id] = {
+        name: p.name,
+        total: list.length,
+        active: list.filter((k) => k.status !== 'exhausted').length,
+        exhausted: list.filter((k) => k.status === 'exhausted').length
+      };
+    });
+    return out;
+  }, [keys]);
+  const hasGroqKey = (keys.groq || []).some((k) => k.status !== 'exhausted');
 
   const currentModelLabel = providerId === 'auto' ? '⚡ تلقائي' : provider.name + (model ? ' · ' + model : '');
 
@@ -413,12 +350,10 @@ export default function Home() {
           ))}
         </div>
         <div className="sidebar-foot">
-          <button className="btn ghost" onClick={() => { setGuideOpen(true); setSidebarOpen(false); }}>🚀 FreeLLMAPI — 10.1 مليار توكن</button>
-          <button className="btn ghost" onClick={() => { setDrawer('freellmapi'); setSidebarOpen(false); }}>⚙️ إعدادات FreeLLMAPI</button>
           <button className="btn ghost" onClick={() => { setDrawer('keys'); setSidebarOpen(false); }}>🔑 مدير المفاتيح</button>
           <button className="btn ghost" onClick={() => { setDrawer('image'); setSidebarOpen(false); }}>🖼 توليد الصور</button>
           <button className="btn ghost" onClick={() => { setDrawer('video'); setSidebarOpen(false); }}>🎬 توليد الفيديو</button>
-          <button className="btn ghost" onClick={() => { setDrawer('stats'); setSidebarOpen(false); }}>📊 الإحصائيات</button>
+          <button className="btn ghost" onClick={() => { setDrawer('stats'); setSidebarOpen(false); }}>📊 لوحة المعلومات</button>
           <button className="btn ghost" onClick={() => { setDrawer('pricing'); setSidebarOpen(false); }}>💎 الخطط والأسعار</button>
           <button className="btn ghost" onClick={() => { setDrawer('settings'); setSidebarOpen(false); }}>⚙️ الإعدادات</button>
           {user
@@ -452,13 +387,9 @@ export default function Home() {
             <option value="auto">⚡ تلقائي — أفضل مزود متاح</option>
             {PROVIDERS.map((p) => <option key={p.id} value={p.id}>{p.name}{p.needsKey ? '' : ' (بدون مفتاح)'}</option>)}
           </select>
-          {providerId === 'freellmapi' ? (
-            <input type="text" value={model} onChange={(e) => setModel(e.target.value)} placeholder="auto — يختار الراوتر، أو اكتب اسم نموذج" aria-label="النموذج" dir="ltr" />
-          ) : (
-            <select value={model} onChange={(e) => setModel(e.target.value)} aria-label="النموذج">
-              {models.map((m) => <option key={m} value={m}>{m}</option>)}
-            </select>
-          )}
+          <select value={model} onChange={(e) => setModel(e.target.value)} aria-label="النموذج">
+            {models.map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
           <button className={'toggle' + (deepThinking ? ' on' : '')} onClick={() => setDeepThinking(!deepThinking)} title="يطلب من النموذج التفكير خطوة بخطوة ويعرض قسم التفكير">🧠 تفكير عميق {deepThinking ? 'مفعّل' : 'متوقف'}</button>
           {current && (
             <span className="actions">
@@ -475,8 +406,25 @@ export default function Home() {
               <div className="empty">
                 <h2>مرحباً بك في OmniAI 👋</h2>
                 <p>اسأل أي شيء، ارفع ملفاً، أو ولّد صورة. اختر «تلقائي» وسيجرّب الموقع المزودين المجانيين أولاً، وينتقل للبديل تلقائياً إذا نفد رصيد مفتاح.</p>
-                <p style={{ fontSize: 13, marginTop: 8 }}>للبدء مجاناً: أضف مفتاح Groq من <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer">console.groq.com/keys</a> عبر «مدير المفاتيح»، أو جرّب Pollinations بدون مفتاح.</p>
-                <p style={{ fontSize: 13, marginTop: 8 }}>أو استعمل <b>FreeLLMAPI</b> — راوتر يجمع الحصص المجانية لـ 87 مزوداً خلف مفتاح واحد: <button className="btn ghost small" onClick={() => setGuideOpen(true)}>🚀 دليل FreeLLMAPI — 10.1 مليار توكن</button></p>
+
+                {/* بطاقة البداية بضغطة واحدة — بدون راوتر وبدون تعقيدات */}
+                <div className="quickstart">
+                  <h3>🚀 ابدأ الآن</h3>
+                  {hasGroqKey ? (
+                    <p className="quick-ok">✓ مفتاح Groq محفوظ — اكتب رسالتك في الأسفل وسيعمل الوضع التلقائي فوراً.</p>
+                  ) : (
+                    <>
+                      <p>ألصق مفتاح Groq المجاني (دقيقة واحدة من <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer">console.groq.com/keys</a>)، أو جرّب بدون مفتاح عبر Pollinations:</p>
+                      <div className="quick-row">
+                        <input type="password" value={quickKey} onChange={(e) => setQuickKey(e.target.value)} placeholder="gsk_… مفتاح Groq" dir="ltr" aria-label="مفتاح Groq" />
+                        <button className="btn" onClick={saveQuickGroqKey}>حفظ المفتاح</button>
+                      </div>
+                      {quickSaved && <div className="note blue">{quickSaved}</div>}
+                      <button className="btn ghost" onClick={tryWithoutKey}>✨ جرّب بدون مفتاح</button>
+                    </>
+                  )}
+                </div>
+
                 <div className="chips">
                   {['اشرح لي الذكاء الاصطناعي ببساطة', 'اكتب لي كود بايثون لفرز قائمة', 'ما الفرق بين Groq و OpenRouter؟', 'لخّص هذا النص في 3 نقاط'].map((q) => (
                     <button key={q} className="chip" onClick={() => sendMessage(q)}>{q}</button>
@@ -522,7 +470,7 @@ export default function Home() {
             </div>
           )}
           <div className="composer-row">
-            <textarea value={input} onChange={(e) => setInput(e.target.value)} onPaste={onPaste}
+            <textarea ref={composerRef} value={input} onChange={(e) => setInput(e.target.value)} onPaste={onPaste}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
               placeholder="اكتب رسالتك… (Enter للإرسال، Shift+Enter لسطر جديد، الصق نصاً أو صورة بـ Ctrl+V)" />
             <button className="btn ghost" onClick={() => fileRef.current?.click()} title="رفع ملفات" aria-label="رفع ملفات">📎</button>
@@ -544,7 +492,7 @@ export default function Home() {
           <div className="backdrop" style={{ display: 'block', zIndex: 65 }} onClick={() => setDrawer(null)} aria-hidden="true" />
           <div className="drawer">
             <div className="drawer-head">
-              <h2>{drawer === 'keys' ? '🔑 مدير المفاتيح' : drawer === 'image' ? '🖼 توليد الصور' : drawer === 'video' ? '🎬 توليد الفيديو' : drawer === 'stats' ? '📊 الإحصائيات' : drawer === 'pricing' ? '💎 الخطط والأسعار' : drawer === 'freellmapi' ? '🚀 FreeLLMAPI — الراوتر' : '⚙️ الإعدادات'}</h2>
+              <h2>{drawer === 'keys' ? '🔑 مدير المفاتيح' : drawer === 'image' ? '🖼 توليد الصور' : drawer === 'video' ? '🎬 توليد الفيديو' : drawer === 'stats' ? '📊 لوحة المعلومات' : drawer === 'pricing' ? '💎 الخطط والأسعار' : '⚙️ الإعدادات'}</h2>
               <button className="sidebar-close" style={{ display: 'inline-flex' }} onClick={() => setDrawer(null)} aria-label="إغلاق">✕</button>
             </div>
 
@@ -574,27 +522,8 @@ export default function Home() {
               <p>ولّد مفتاحاً موحداً لتطبيقاتك تستعمله بدل توزيع مفاتيح المزودين.</p>
               <button className="btn ghost" onClick={() => { const k = generateAppApiKey(); setAppKey(k); try { localStorage.setItem('omni_appkey', k); } catch {} }}>توليد مفتاح API</button>
               {appKey && <div className="key-row"><code>{appKey}</code><button className="btn ghost small" onClick={() => copyText(appKey, 'appkey')}>{copied === 'appkey' ? '✓ نُسخ' : 'نسخ'}</button></div>}
-              <h3>FreeLLMAPI — توضيح صادق</h3>
-              <div className="note">أرقام «10.1 مليار توكن / 87 مزوداً» هي تقدير كتالوج المشروع الكلي، وليست حصة مضمونة لك. كل مزود يحتاج حسابه ومفتاحه وحدوده الخاصة. هذا الموقع يستطيع توجيه الطلبات إلى موجّه FreeLLMAPI يعمل على جهازك.</div>
-              <div className="field"><label>رابط موجّه FreeLLMAPI</label><input value={customBase} onChange={(e) => { setCustomBase(e.target.value); try { localStorage.setItem('omni_freellmapi_url', e.target.value); } catch {} }} dir="ltr" /></div>
-              <p>ثبّت المشروع من <a href="https://github.com/tashfeenahmed/freellmapi" target="_blank" rel="noreferrer">GitHub — freellmapi</a>، شغّله على المنفذ 3001، ثم اختر المزود «FreeLLMAPI Router (محلي)» من الأعلى.</p>
-              <button className="btn ghost" style={{ marginTop: 8 }} onClick={() => setDrawer('freellmapi')}>فتح إعدادات FreeLLMAPI الكاملة</button>
             </>)}
 
-            {drawer === 'freellmapi' && (<>
-              <p>الراوتر يعمل على جهازك أنت — خادم Vercel لا يستطيع الوصول إلى localhost. لذلك: رابط محلي (localhost) يُرسل <b>مباشرة من متصفحك</b> إلى الراوتر، ورابط عام (https) يُرسل عبر خادم الموقع.</p>
-              <div className="note blue">المسار الحالي: <b>{flPath()}</b> — {isLocalRouterUrl(customBase) ? 'الطلبات تخرج من متصفحك مباشرة إلى الراوتر على هذا الجهاز.' : 'الطلبات تمر عبر خادم الموقع إلى رابطك العام.'}</div>
-              <div className="field"><label>رابط الراوتر</label><input value={customBase} onChange={(e) => saveFlUrl(e.target.value)} dir="ltr" placeholder="http://localhost:3001/v1" /></div>
-              <div className="field"><label>المفتاح الموحد (freellmapi-…)</label><input type="password" value={flKey} onChange={(e) => saveFlKey(e.target.value)} placeholder="freellmapi-…" dir="ltr" /></div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button className="btn" onClick={testFreellmapi}>اختبار الاتصال</button>
-                <button className="btn ghost" onClick={() => { saveFlKey(''); saveFlUrl('http://localhost:3001/v1'); setFlTest('تم المسح — عاد الرابط إلى الافتراضي http://localhost:3001/v1.'); }}>مسح</button>
-                <button className="btn ghost" onClick={() => { setDrawer(null); setGuideOpen(true); }}>📖 دليل التثبيت</button>
-              </div>
-              {flTest && <div className="note blue">{flTest}</div>}
-              <h3>ملاحظة صادقة</h3>
-              <div className="note">«10.1 مليار توكن» = مجموع الحصص المجانية لكل المزودين الـ 87 في كتالوج FreeLLMAPI، وليست رصيداً يمنحه لك أحد. كل مزود له حسابه ومفتاحه وحده الخاص. الكتالوج المجاني لقطة شهرية تتأخر 30 يوماً؛ الكتالوج الحي Premium بـ 19$/سنة (أو 49$ مدى الحياة). المشروع «للتجربة الشخصية فقط».</div>
-            </>)}
 
             {drawer === 'image' && (<>
               <p>بدون مفتاح: Pollinations المجاني. مع مفتاح OpenAI: DALL·E 3.</p>
@@ -626,16 +555,34 @@ export default function Home() {
             </>)}
 
             {drawer === 'stats' && (<>
+              <h3>التوكنات</h3>
               <div className="grid2">
-                <div className="stat-box">كل التوكنات<br /><b>{formatTokens(totalTokens)}</b></div>
+                <div className="stat-box">هذه الجلسة<br /><b>{formatTokens(current?.tokens || 0)}</b></div>
                 <div className="stat-box">توكنات اليوم<br /><b>{formatTokens(daily.tokens)}</b></div>
-                <div className="stat-box">الجلسات<br /><b>{stats.sessions}</b></div>
+                <div className="stat-box">كل الجلسات<br /><b>{formatTokens(totalTokens)}</b></div>
                 <div className="stat-box">الرسائل<br /><b>{stats.messages}</b></div>
               </div>
-              <h3>الردود حسب المزود</h3>
-              {Object.keys(stats.per).length === 0 ? <p>لا ردود بعد — أرسل أول رسالة.</p> : Object.entries(stats.per).map(([p, n]) => <div key={p} className="key-row"><span style={{ flex: 1 }}>{getProvider(p).name}</span><b>{n} رداً</b></div>)}
-              <h3>الخطة</h3>
-              <p>خطتك الحالية: <b>{planInfo.name}</b> — حد اليوم {formatTokens(planInfo.limit)} توكن، {planInfo.images} صورة. متبقٍ اليوم: {formatTokens(remaining)} توكن.</p>
+              <h3>الاستهلاك حسب المزود</h3>
+              {Object.keys(stats.per).length === 0 ? <p>لا ردود بعد — أرسل أول رسالة وستظهر التفاصيل هنا.</p> : Object.entries(stats.per).map(([p, e]) => <div key={p} className="key-row"><span style={{ flex: 1 }}>{(PROVIDERS.find((x) => x.id === p)?.name || p)}</span><b>{e.replies} رداً · {formatTokens(e.tokens)} توكن</b></div>)}
+              <h3>حالة المفاتيح</h3>
+              {Object.values(keyStatus).every((k) => k.total === 0)
+                ? <p>لا مفاتيح محفوظة بعد — أضف مفتاح Groq مجاني من «ابدأ الآن» أو من «مدير المفاتيح»، أو جرّب Pollinations بدون مفتاح.</p>
+                : Object.entries(keyStatus).filter(([, k]) => k.total > 0).map(([pid, k]) => (
+                  <div key={pid} className="key-row"><span style={{ flex: 1 }}>{k.name}</span><b>{k.active} نشط · {k.exhausted} مستنفد</b></div>
+                ))}
+              <h3>الأدوات — ماذا يحتاج كل منها؟</h3>
+              <div className="tool-list">
+                <div className="key-row"><span style={{ flex: 1 }}>🤖 محادثة</span><span>مفتاح مجاني (Groq) أو بدون مفتاح عبر Pollinations</span></div>
+                <div className="key-row"><span style={{ flex: 1 }}>🖼 توليد الصور</span><span>مجاني عبر Pollinations، أو DALL·E 3 بمفتاح OpenAI</span></div>
+                <div className="key-row"><span style={{ flex: 1 }}>🎬 توليد الفيديو</span><span>يحتاج مفتاحاً مدفوعاً (Replicate / Luma / Runway)</span></div>
+                <div className="key-row"><span style={{ flex: 1 }}>🧠 تفكير عميق</span><span>يعمل مع أي مزود — فعّله من أعلى المحادثة</span></div>
+                <div className="key-row"><span style={{ flex: 1 }}>📁 رفع ملفات وتحليلها</span><span>نصوص حتى 2MB؛ ملف PDF يُقبل دون استخراج نصه</span></div>
+                <div className="key-row"><span style={{ flex: 1 }}>📋 نسخ وتصدير</span><span>نسخ أي رد أو تصدير الجلسة .md / .json — مجاني</span></div>
+              </div>
+              <h3>الخطة والحدود</h3>
+              <p>خطتك الحالية: <b>{planInfo.name}</b> — حد اليوم {formatTokens(planInfo.limit)} توكن، {planInfo.images} صورة.</p>
+              <p>متبقٍ اليوم: <b>{formatTokens(remaining)}</b> توكن · {Math.max(0, planInfo.images - daily.images)} صورة.</p>
+              <div className="note">كل الأرقام هنا محسوبة محلياً في متصفحك من جلساتك ومفاتيحك — لا يوجد رصيد سحابي ولا راوتر.</div>
             </>)}
 
             {drawer === 'pricing' && (<>
@@ -658,59 +605,17 @@ export default function Home() {
               <select value={plan} onChange={(e) => { setPlan(e.target.value); try { localStorage.setItem('omni_plan', e.target.value); } catch {} }}>
                 {Object.entries(PLANS).map(([id, p]) => <option key={id} value={id}>{p.name} — {p.price}</option>)}
               </select>
-              <h3>رابط FreeLLMAPI / نقطة نهاية مخصصة</h3>
-              <input value={customBase} onChange={(e) => { setCustomBase(e.target.value); try { localStorage.setItem('omni_freellmapi_url', e.target.value); } catch {} }} dir="ltr" />
+              <h3>نقطة نهاية مخصصة (للمزود «نقطة نهاية مخصصة» فقط)</h3>
+              <input value={customBase} onChange={(e) => saveCustomBase(e.target.value)} dir="ltr" placeholder="https://example.com/v1" />
+              <p style={{ fontSize: 13 }}>خيار متقدم فقط: راوتر FreeLLMAPI المستضاف ذاتياً (<a href="https://github.com/tashfeenahmed/freellmapi" target="_blank" rel="noreferrer">GitHub</a>) غير مطلوب — الموقع يعمل كاملاً بدونه.</p>
               <h3>البيانات المحلية</h3>
               <p>كل الجلسات والمفاتيح محفوظة في متصفحك فقط (localStorage). مسحها يحذف كل شيء نهائياً من هذا الجهاز.</p>
               <button className="btn danger" onClick={() => { if (confirm('حذف كل الجلسات والمفاتيح من هذا المتصفح؟')) { try { localStorage.clear(); } catch {} location.reload(); } }}>🗑 مسح كل البيانات المحلية</button>
               <h3>روابط مفيدة</h3>
-              <p><a href="https://console.groq.com/keys" target="_blank" rel="noreferrer">مفتاح Groq المجاني</a><br /><a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">مفتاح OpenRouter</a><br /><a href="https://huggingface.co/settings/tokens" target="_blank" rel="noreferrer">توكن Hugging Face</a><br /><a href="https://github.com/tashfeenahmed/freellmapi" target="_blank" rel="noreferrer">مشروع FreeLLMAPI</a></p>
+              <p><a href="https://console.groq.com/keys" target="_blank" rel="noreferrer">مفتاح Groq المجاني</a><br /><a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">مفتاح OpenRouter</a><br /><a href="https://huggingface.co/settings/tokens" target="_blank" rel="noreferrer">توكن Hugging Face</a></p>
             </>)}
           </div>
         </>
-      )}
-
-      {/* دليل FreeLLMAPI */}
-      {guideOpen && (
-        <div className="modal-back" onClick={() => setGuideOpen(false)}>
-          <div className="modal wide" onClick={(e) => e.stopPropagation()}>
-            <h2>🚀 دليل FreeLLMAPI — 10.1 مليار توكن</h2>
-            <p>FreeLLMAPI راوتر مفتوح المصدر يعمل على <b>جهازك أنت</b>: تضيف مفاتيح مزوديك فيه، فيعطيك مفتاحاً موحداً واحداً (freellmapi-…) يوجّه طلباتك عبر كل المزودين مع انتقال تلقائي للبديل عند بلوغ حدّ أو عطل.</p>
-            <ol className="guide-steps">
-              <li><b>ثبّت الراوتر على جهازك</b> (يحتاج Docker) — انسخ الأمر وشغّله في الطرفية:
-                <div className="codeblock">curl -fsSL https://freellmapi.co/install.sh | bash</div>
-                <button className="btn ghost small" onClick={() => copyText('curl -fsSL https://freellmapi.co/install.sh | bash', 'flcmd')}>{copied === 'flcmd' ? '✓ نُسخ الأمر' : '📋 نسخ أمر التثبيت'}</button>
-                <div style={{ marginTop: 8 }}>أو ثبّت تطبيق سطح المكتب من <a href="https://freellmapi.co" target="_blank" rel="noreferrer">freellmapi.co</a> (Microsoft Store / macOS) — نفس الراوتر واللوحة.</div>
-              </li>
-              <li><b>افتح لوحة الراوتر</b> على <a href="http://localhost:3001" target="_blank" rel="noreferrer">http://localhost:3001</a>، ثم صفحة <b>Keys</b>، وأضف مفاتيح المزودين المجانية التي تريدها:
-                <table className="guide-table">
-                  <thead><tr><th>المزود</th><th>أين تحصل على المفتاح؟</th></tr></thead>
-                  <tbody>
-                    <tr><td>Groq</td><td><a href="https://console.groq.com/keys" target="_blank" rel="noreferrer">console.groq.com/keys</a></td></tr>
-                    <tr><td>OpenRouter</td><td><a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">openrouter.ai/keys</a></td></tr>
-                    <tr><td>DeepSeek</td><td><a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noreferrer">platform.deepseek.com/api_keys</a></td></tr>
-                    <tr><td>Hugging Face</td><td><a href="https://huggingface.co/settings/tokens" target="_blank" rel="noreferrer">huggingface.co/settings/tokens</a></td></tr>
-                    <tr><td>Mistral</td><td><a href="https://console.mistral.ai" target="_blank" rel="noreferrer">console.mistral.ai</a></td></tr>
-                    <tr><td>Google AI Studio</td><td><a href="https://aistudio.google.com" target="_blank" rel="noreferrer">aistudio.google.com</a></td></tr>
-                  </tbody>
-                </table>
-                القائمة الكاملة للمزودين الـ 87 (Google، Cerebras، Cloudflare، Cohere، NVIDIA وغيرها) في <a href="https://freellmapi.co" target="_blank" rel="noreferrer">freellmapi.co</a>.
-              </li>
-              <li><b>انسخ المفتاح الموحد</b> (freellmapi-…) من أعلى صفحة Keys في لوحة الراوتر، والصقه في إعدادات FreeLLMAPI هنا:
-                <div style={{ marginTop: 8 }}><button className="btn" onClick={() => { setGuideOpen(false); setDrawer('freellmapi'); }}>فتح إعدادات FreeLLMAPI</button></div>
-              </li>
-              <li><b>اختبر الاتصال</b> من نفس اللوحة بزر «اختبار الاتصال»، ثم اختر المزود «FreeLLMAPI Router» من أعلى المحادثة، اترك النموذج <code>auto</code> ليختار الراوتر الأفضل، أو اكتب اسم نموذج معين، وأرسل رسالتك. ستظهر تحت كل رد عبارة «المسار: مباشر من المتصفح» أو «عبر خادم الموقع».</li>
-            </ol>
-            <div className="note">
-              <b>ملاحظات صادقة — اقرأها قبل أن تتوقع 10 مليارات توكن:</b><br />
-              • الرقم 10.1 مليار توكن/شهر = <b>مجموع</b> الحصص المجانية المعلنة لكل المزودين الـ 87 (1,313 endpoint) — وليس رصيداً يمنحه لك أحد. كل مزود له حسابه ومفتاحه وحده الخاص.<br />
-              • الكتالوج المجاني لقطة شهرية تتأخر 30 يوماً عن الكتالوج الحي؛ الكتالوج الحي Premium بـ 19$/سنة (أو 49$ مدى الحياة) على freellmapi.co.<br />
-              • المشروع مكتوب عليه «للتجربة الشخصية فقط» (Personal experimentation only).<br />
-              • رابط localhost يعمل فقط من متصفح <b>نفس الجهاز</b> الذي يشغّل الراوتر — خادم Vercel لا يستطيع الوصول إليه. من الهاتف تحتاج الراوتر مكشوفاً عبر رابط عام (Cloudflare Tunnel أو خادم VPS)، ثم ضع ذلك الرابط في الإعدادات وستمر الطلبات عبر خادم الموقع.
-            </div>
-            <button className="btn" onClick={() => setGuideOpen(false)}>فهمت — إغلاق الدليل</button>
-          </div>
-        </div>
       )}
 
       {/* نافذة المصادقة */}
