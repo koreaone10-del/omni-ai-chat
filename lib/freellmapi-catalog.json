@@ -1,0 +1,7351 @@
+{
+ "source": "https://freellmapi.co/assets/data.js",
+ "fetchedAt": "2026-11-22T20:12:52.281Z",
+ "version": "2026.11.19",
+ "generatedAt": "2026-11-19T11:43:58.902Z",
+ "totalModels": 381,
+ "totalEndpoints": 487,
+ "models": [
+  {
+   "id": "glm-5.3:free",
+   "name": "GLM 5.3",
+   "providers": [
+    "unorouter",
+    "apinex"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 1000000,
+   "contextLabel": "1M",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 1 req/min per model",
+   "sizeLabel": "Frontier",
+   "intelligenceRank": 17,
+   "speedRank": 7,
+   "desc": "unorouter، apinex · سياق 1M · يدعم الأدوات · free · 1 req/min per model · مجاني"
+  },
+  {
+   "id": "qwen/qwen3.8-max:free",
+   "name": "Qwen3.8 Max",
+   "providers": [
+    "aclide"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Frontier",
+   "intelligenceRank": 17,
+   "speedRank": 9,
+   "desc": "aclide · يدعم الأدوات · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "glm-5.3-flash:free",
+   "name": "GLM 5.3 Flash",
+   "providers": [
+    "unorouter",
+    "blaze",
+    "nvidia"
+   ],
+   "providersCount": 3,
+   "endpoints": 3,
+   "context": 1000000,
+   "contextLabel": "1M",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · 1 req/min per model",
+   "sizeLabel": "Frontier",
+   "intelligenceRank": 23,
+   "speedRank": 9,
+   "desc": "unorouter، blaze، nvidia · سياق 1M · يدعم الأدوات · رؤية · free · 1 req/min per model · مجاني"
+  },
+  {
+   "id": "free/glm-5.3-flash",
+   "name": "GLM-5.3 Flash",
+   "providers": [
+    "apinex"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 1000000,
+   "contextLabel": "1M",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "10M weighted tokens/day shared across APINex free routes; 3x token multiplier; 5 requests/minute/account",
+   "sizeLabel": "Frontier",
+   "intelligenceRank": 23,
+   "speedRank": 9,
+   "desc": "apinex · سياق 1M · 10M weighted tokens/day shared across APINex free routes; 3x token multiplier; 5 requests/minute/account · مجاني"
+  },
+  {
+   "id": "free/gemini-3.8-flash",
+   "name": "Gemini 3.8 Flash",
+   "providers": [
+    "google",
+    "apinex"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 1048576,
+   "contextLabel": "1.05M",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "10M weighted tokens/day shared across APINex free routes; 3x token multiplier; 5 requests/minute/account",
+   "sizeLabel": "Frontier",
+   "intelligenceRank": 25,
+   "speedRank": 4,
+   "desc": "google، apinex · سياق 1.05M · يدعم الأدوات · رؤية · 10M weighted tokens/day shared across APINex free routes; 3x token multiplier; 5 requests/minute/account · مجاني"
+  },
+  {
+   "id": "gemini-flash-latest",
+   "name": "Gemini Flash (latest alias)",
+   "providers": [
+    "google"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "~3M",
+   "sizeLabel": "Frontier",
+   "intelligenceRank": 25,
+   "speedRank": 10,
+   "desc": "google · يدعم الأدوات · رؤية · ~3M · مجاني"
+  },
+  {
+   "id": "free/qwen3.8-flash-next",
+   "name": "Qwen3.8 Flash Next",
+   "providers": [
+    "radeon",
+    "blaze"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "Free · 200,000 shared tokens/day; resets daily",
+   "sizeLabel": "Frontier",
+   "intelligenceRank": 27,
+   "speedRank": 5,
+   "desc": "radeon، blaze · سياق 262K · يدعم الأدوات · Free · 200,000 shared tokens/day; resets daily · مجاني"
+  },
+  {
+   "id": "qwen3.8-flash",
+   "name": "Qwen3.8 Flash",
+   "providers": [
+    "electronhub",
+    "inferbase"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 1000000,
+   "contextLabel": "1M",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Frontier",
+   "intelligenceRank": 27,
+   "speedRank": 10,
+   "desc": "electronhub، inferbase · سياق 1M · يدعم الأدوات · رؤية · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "free/deepseek-v4.1-flash",
+   "name": "Deepseek V4.1 Flash",
+   "providers": [
+    "apinex"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 1000000,
+   "contextLabel": "1M",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "10M weighted tokens/day shared across APINex free routes; 3x token multiplier; 5 requests/minute/account",
+   "sizeLabel": "Frontier",
+   "intelligenceRank": 28,
+   "speedRank": 10,
+   "desc": "apinex · سياق 1M · 10M weighted tokens/day shared across APINex free routes; 3x token multiplier; 5 requests/minute/account · مجاني"
+  },
+  {
+   "id": "gemini-3.7-flash",
+   "name": "Gemini 3.7 Flash",
+   "providers": [
+    "google"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 1048576,
+   "contextLabel": "1.05M",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "~3M",
+   "sizeLabel": "Frontier",
+   "intelligenceRank": 29,
+   "speedRank": 4,
+   "desc": "google · سياق 1.05M · يدعم الأدوات · رؤية · ~3M · مجاني"
+  },
+  {
+   "id": "gpt-5.6-luna",
+   "name": "GPT-5.6 Luna",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 1000000,
+   "contextLabel": "1M",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Frontier",
+   "intelligenceRank": 33,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 1M · يدعم الأدوات · رؤية · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "dots-studio/dots-3-note-preview:free",
+   "name": "Dots3 Note Preview",
+   "providers": [
+    "openrouter",
+    "kilo"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 512000,
+   "contextLabel": "512K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · 50 req/day account-wide (1,000 after a $10 purchase)",
+   "sizeLabel": "Frontier",
+   "intelligenceRank": 35,
+   "speedRank": 7,
+   "desc": "openrouter، kilo · سياق 512K · يدعم الأدوات · رؤية · free · 50 req/day account-wide (1,000 after a $10 purchase) · مجاني"
+  },
+  {
+   "id": "agnes-3.0-flash",
+   "name": "Agnes 3.0 Flash",
+   "providers": [
+    "agnes"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · promo $0/token",
+   "sizeLabel": "Frontier",
+   "intelligenceRank": 35,
+   "speedRank": 10,
+   "desc": "agnes · free · promo $0/token · مجاني"
+  },
+  {
+   "id": "deepseek/deepseek-v4-flash-0731free:free",
+   "name": "DeepSeek V4 Flash",
+   "providers": [
+    "bazaarlink",
+    "radeon",
+    "electronhub"
+   ],
+   "providersCount": 3,
+   "endpoints": 3,
+   "context": 1048576,
+   "contextLabel": "1.05M",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · shared rate limit",
+   "sizeLabel": "Frontier",
+   "intelligenceRank": 38,
+   "speedRank": 6,
+   "desc": "bazaarlink، radeon، electronhub · سياق 1.05M · يدعم الأدوات · free · shared rate limit · مجاني"
+  },
+  {
+   "id": "deepseek/deepseek-v4-flash",
+   "name": "DeepSeek V4 Flash 0731",
+   "providers": [
+    "router9",
+    "inferbase"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 1048576,
+   "contextLabel": "1.05M",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "10,000 credits/month (~$1), shared; account-anniversary reset",
+   "sizeLabel": "Frontier",
+   "intelligenceRank": 38,
+   "speedRank": 9,
+   "desc": "router9، inferbase · سياق 1.05M · 10,000 credits/month (~$1), shared; account-anniversary reset · مجاني"
+  },
+  {
+   "id": "qwen/qwen3.8-27b:free",
+   "name": "Qwen3.8 27B",
+   "providers": [
+    "groq",
+    "electronhub",
+    "ovh",
+    "llmtr",
+    "gizmo",
+    "blaze"
+   ],
+   "providersCount": 6,
+   "endpoints": 6,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "1,000 free-model requests/month · shared account quota",
+   "sizeLabel": "Frontier",
+   "intelligenceRank": 39,
+   "speedRank": 2,
+   "desc": "groq، electronhub، ovh، llmtr، gizmo، blaze · سياق 262K · يدعم الأدوات · رؤية · 1,000 free-model requests/month · shared account quota · مجاني"
+  },
+  {
+   "id": "gemini-3.6-flash",
+   "name": "Gemini 3.6 Flash",
+   "providers": [
+    "google"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 1048576,
+   "contextLabel": "1.05M",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "~3M",
+   "sizeLabel": "Frontier",
+   "intelligenceRank": 39,
+   "speedRank": 5,
+   "desc": "google · سياق 1.05M · يدعم الأدوات · رؤية · ~3M · مجاني"
+  },
+  {
+   "id": "z-ai/glm-5.2",
+   "name": "GLM 5.2",
+   "providers": [
+    "router9"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 1048576,
+   "contextLabel": "1.05M",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "10,000 credits/month (~$1), shared; account-anniversary reset",
+   "sizeLabel": "Frontier",
+   "intelligenceRank": 39,
+   "speedRank": 8,
+   "desc": "router9 · سياق 1.05M · 10,000 credits/month (~$1), shared; account-anniversary reset · مجاني"
+  },
+  {
+   "id": "ZhipuAI/GLM-5.2",
+   "name": "GLM-5.2",
+   "providers": [
+    "modelscope"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 200000,
+   "contextLabel": "200K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Daily login: 200 credits + 50 for linked Alibaba Cloud; 24h expiry; shared; noncommercial experience",
+   "sizeLabel": "Frontier",
+   "intelligenceRank": 39,
+   "speedRank": 8,
+   "desc": "modelscope · سياق 200K · Daily login: 200 credits + 50 for linked Alibaba Cloud; 24h expiry; shared; noncommercial experience · مجاني"
+  },
+  {
+   "id": "@cf/qwen/qwen3.8-27b",
+   "name": "Qwen 3.8 27B",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · shared 10k neurons/day",
+   "sizeLabel": "Frontier",
+   "intelligenceRank": 39,
+   "speedRank": 9,
+   "desc": "cloudflare · سياق 262K · يدعم الأدوات · رؤية · free · shared 10k neurons/day · مجاني"
+  },
+  {
+   "id": "gemini-3.5-flash",
+   "name": "Gemini 3.5 Flash",
+   "providers": [
+    "google"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 1048576,
+   "contextLabel": "1.05M",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "~3M",
+   "sizeLabel": "Frontier",
+   "intelligenceRank": 41,
+   "speedRank": 5,
+   "desc": "google · سياق 1.05M · يدعم الأدوات · رؤية · ~3M · مجاني"
+  },
+  {
+   "id": "deepseek-ai/DeepSeek-V4-Pro",
+   "name": "DeepSeek V4 Pro",
+   "providers": [
+    "modelscope",
+    "router9",
+    "apinex"
+   ],
+   "providersCount": 3,
+   "endpoints": 3,
+   "context": 1048576,
+   "contextLabel": "1.05M",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Daily login: 200 credits + 50 for linked Alibaba Cloud; 24h expiry; shared; noncommercial experience",
+   "sizeLabel": "Frontier",
+   "intelligenceRank": 46,
+   "speedRank": 9,
+   "desc": "modelscope، router9، apinex · سياق 1.05M · Daily login: 200 credits + 50 for linked Alibaba Cloud; 24h expiry; shared; noncommercial experience · مجاني"
+  },
+  {
+   "id": "MiniMax/MiniMax-M3",
+   "name": "MiniMax M3",
+   "providers": [
+    "modelscope",
+    "electronhub",
+    "inferbase"
+   ],
+   "providersCount": 3,
+   "endpoints": 3,
+   "context": 1000000,
+   "contextLabel": "1M",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "Daily login: 200 credits + 50 for linked Alibaba Cloud; 24h expiry; shared; noncommercial experience",
+   "sizeLabel": "Large",
+   "intelligenceRank": 48,
+   "speedRank": 9,
+   "desc": "modelscope، electronhub، inferbase · سياق 1M · يدعم الأدوات · Daily login: 200 credits + 50 for linked Alibaba Cloud; 24h expiry; shared; noncommercial experience · مجاني"
+  },
+  {
+   "id": "qwen/qwen3.7-max:free",
+   "name": "Qwen3.7 Max",
+   "providers": [
+    "aclide"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Large",
+   "intelligenceRank": 49,
+   "speedRank": 9,
+   "desc": "aclide · يدعم الأدوات · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "gemini-3.8-live",
+   "name": "Gemini 3.8 Live",
+   "providers": [
+    "google"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "~3M",
+   "sizeLabel": "Large",
+   "intelligenceRank": 49,
+   "speedRank": 10,
+   "desc": "google · يدعم الأدوات · رؤية · ~3M · مجاني"
+  },
+  {
+   "id": "gemini-3.8-live-extended-thinking",
+   "name": "Gemini 3.8 Live Extended Thinking",
+   "providers": [
+    "google"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "~3M",
+   "sizeLabel": "Large",
+   "intelligenceRank": 49,
+   "speedRank": 10,
+   "desc": "google · يدعم الأدوات · رؤية · ~3M · مجاني"
+  },
+  {
+   "id": "nex-n2.5-pro-free",
+   "name": "nex-n2.5-pro",
+   "providers": [
+    "waterfall"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · community rate limit",
+   "sizeLabel": "Large",
+   "intelligenceRank": 49,
+   "speedRank": 10,
+   "desc": "waterfall · سياق 262K · free · community rate limit · مجاني"
+  },
+  {
+   "id": "GPT OSS 20B",
+   "name": "GPT OSS 20B",
+   "providers": [
+    "clod",
+    "inferbase"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · shared daily allowance",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 50,
+   "speedRank": 2,
+   "desc": "clod، inferbase · سياق 8K · free · shared daily allowance · مجاني"
+  },
+  {
+   "id": "google/gemma-4-31b-it",
+   "name": "Gemma 4 31B IT",
+   "providers": [
+    "google",
+    "septor",
+    "clod",
+    "speka",
+    "inferbase"
+   ],
+   "providersCount": 5,
+   "endpoints": 5,
+   "context": 128000,
+   "contextLabel": "128K",
+   "tools": false,
+   "vision": true,
+   "price": "$0",
+   "budget": "$1/month shared across Speka models",
+   "sizeLabel": "Large",
+   "intelligenceRank": 50,
+   "speedRank": 4,
+   "desc": "google، septor، clod، speka، inferbase · سياق 128K · رؤية · $1/month shared across Speka models · مجاني"
+  },
+  {
+   "id": "@cf/meta/llama-3.1-8b-instruct-fp8",
+   "name": "Llama 3.1 8B",
+   "providers": [
+    "cloudflare",
+    "inferbase"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "~10-20M",
+   "sizeLabel": "Small",
+   "intelligenceRank": 50,
+   "speedRank": 8,
+   "desc": "cloudflare، inferbase · سياق 131K · يدعم الأدوات · ~10-20M · مجاني"
+  },
+  {
+   "id": "cohere/north-mini-code:free",
+   "name": "North Mini Code",
+   "providers": [
+    "openrouter",
+    "cohere",
+    "kilo",
+    "electronhub"
+   ],
+   "providersCount": 4,
+   "endpoints": 4,
+   "context": 256000,
+   "contextLabel": "256K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "~6M",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 50,
+   "speedRank": 8,
+   "desc": "openrouter، cohere، kilo، electronhub · سياق 256K · يدعم الأدوات · ~6M · مجاني"
+  },
+  {
+   "id": "Qwen 3.5 9B",
+   "name": "Qwen 3.5 9B",
+   "providers": [
+    "clod",
+    "inferbase"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · shared daily allowance",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 50,
+   "speedRank": 9,
+   "desc": "clod، inferbase · سياق 8K · free · shared daily allowance · مجاني"
+  },
+  {
+   "id": "qwen/qwen3.6-max-preview:free",
+   "name": "Qwen3.6 Max Preview",
+   "providers": [
+    "aclide"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Large",
+   "intelligenceRank": 50,
+   "speedRank": 9,
+   "desc": "aclide · يدعم الأدوات · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "deepseek-v3",
+   "name": "DeepSeek V3",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "deepseek-v3-1:fp4",
+   "name": "DeepSeek V3.1 FP4",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "deepseek-v3-2:fp4",
+   "name": "DeepSeek V3.2 FP4",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "deepseek-v4-flash:fp8",
+   "name": "DeepSeek V4 Flash (fp8)",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "deepseek-v4-flash-0731",
+   "name": "DeepSeek-V4-Flash-0731",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 524000,
+   "contextLabel": "524K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 524K · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "gemini-3.8-flash-tts",
+   "name": "Gemini 3.8 Flash TTS",
+   "providers": [
+    "google"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Ongoing AI Studio free-tier quota; account limits apply",
+   "sizeLabel": "Flash",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "google · Ongoing AI Studio free-tier quota; account limits apply · مجاني"
+  },
+  {
+   "id": "gemini-3.8-flash-lite-tts",
+   "name": "Gemini 3.8 Flash-Lite TTS",
+   "providers": [
+    "google"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Ongoing AI Studio free-tier quota; account limits apply",
+   "sizeLabel": "Flash",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "google · Ongoing AI Studio free-tier quota; account limits apply · مجاني"
+  },
+  {
+   "id": "google-gemma-3-12b-it",
+   "name": "Gemma 3 12B",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "google-gemma-3-27b-it",
+   "name": "Gemma 3 27B",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "google-gemma-3-4b-it",
+   "name": "Gemma 3 4B",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "google-gemma-4-26b-a4b-it",
+   "name": "Gemma 4 26B A4B IT",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "free-gemma-4-E4B",
+   "name": "Gemma E4B Free",
+   "providers": [
+    "simplellm"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Shared hourly/daily free-model quota",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "simplellm · سياق 131K · Shared hourly/daily free-model quota · مجاني"
+  },
+  {
+   "id": "gemma-4-31b-aura-large-v1.1",
+   "name": "Gemma-4-31B-Aura-Large-v1.1",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262000,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 262K · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "zai-glm-4-5-air",
+   "name": "GLM 4.5 Air",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "zai-glm-4-5v",
+   "name": "GLM 4.5V",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "zai-glm-4-6:fp4",
+   "name": "GLM 4.6 FP4",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "zai-glm-4-6v",
+   "name": "GLM 4.6V",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "zai-glm-4-7:fp4",
+   "name": "GLM 4.7",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "glm-4.7-flash",
+   "name": "GLM 4.7 Flash",
+   "providers": [
+    "electronhub",
+    "inferbase"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 200000,
+   "contextLabel": "200K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Large",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub، inferbase · سياق 200K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "gemini-3.8-flash-lite-tts",
+   "name": "Google: Gemini 3.8 Flash Lite TTS",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8000,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Audio",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 8K · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "gemini-3.8-flash-tts",
+   "name": "Google: Gemini 3.8 Flash TTS",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8000,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Audio",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 8K · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "gemma-2-27b-it",
+   "name": "Google: Gemma 2 27B",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8000,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 8K · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "gemma-3-27b-it",
+   "name": "Google: Gemma 3 27B",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 32000,
+   "contextLabel": "32K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 32K · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "gpt-oss-120b",
+   "name": "GPT OSS 120B",
+   "providers": [
+    "electronhub",
+    "clod",
+    "inferbase"
+   ],
+   "providersCount": 3,
+   "endpoints": 3,
+   "context": 128000,
+   "contextLabel": "128K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub، clod، inferbase · سياق 128K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "openai/gpt-oss-safeguard-20b",
+   "name": "GPT OSS Safeguard 20B",
+   "providers": [
+    "llmtr"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Ongoing zero-priced route",
+   "sizeLabel": "Moderation",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "llmtr · Ongoing zero-priced route · مجاني"
+  },
+  {
+   "id": "gpt-oss:20b",
+   "name": "gpt-oss:20b",
+   "providers": [
+    "llm7"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 128000,
+   "contextLabel": "128K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Free tier: 100,000 tokens/24h shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "llm7 · سياق 128K · Free tier: 100,000 tokens/24h shared · مجاني"
+  },
+  {
+   "id": "humain-tts",
+   "name": "Humain: TTS",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 1000,
+   "contextLabel": "1K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Audio",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 1K · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "kimi-k3-nvidia-direct",
+   "name": "Kimi K3 NVIDIA Direct",
+   "providers": [
+    "waterfall"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Free community route; shared rate limits",
+   "sizeLabel": "Large",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "waterfall · Free community route; shared rate limits · مجاني"
+  },
+  {
+   "id": "kokoro",
+   "name": "Kokoro",
+   "providers": [
+    "freeai"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "",
+   "sizeLabel": "TTS",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "freeai · مجاني"
+  },
+  {
+   "id": "novita/ling-3.1-flash",
+   "name": "Ling 3.1 Flash",
+   "providers": [
+    "requesty"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Free · 200 requests/day shared across free models",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "requesty · سياق 262K · Free · 200 requests/day shared across free models · مجاني"
+  },
+  {
+   "id": "free-Llama-3.1-8B-Instruct",
+   "name": "Llama 3.1 8B Free",
+   "providers": [
+    "simplellm"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Shared hourly/daily free-model quota",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "simplellm · سياق 131K · Shared hourly/daily free-model quota · مجاني"
+  },
+  {
+   "id": "meta-llama-3-3-70b-instruct",
+   "name": "Llama 3.3 70B Instruct",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "meta-llama-4-scout-17b-16e-instruct:fp8",
+   "name": "Llama 4 Scout 17B 16E Instruct (fp8)",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "mimo-v2.6-flash-mopd",
+   "name": "MiMo-V2.6-Flash-MOPD",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 524000,
+   "contextLabel": "524K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 524K · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "minimax-m2.1",
+   "name": "MiniMax: MiniMax M2.1",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 200000,
+   "contextLabel": "200K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 200K · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "mistral-nemo-instruct-2407:fp8",
+   "name": "Mistral Nemo FP8",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "mistral-small-24b-instruct-2501:fp8",
+   "name": "Mistral Small 24B FP8",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "mistral-small-3-2-24b-instruct-2506:fp8",
+   "name": "Mistral Small 3.2 24B Instruct 2506 (fp8)",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "devstral-2512",
+   "name": "Mistral: Devstral 2512",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262000,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 262K · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "mistral-large-2512",
+   "name": "Mistral: Mistral Large 3",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262000,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 262K · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "mistral-medium-3-5",
+   "name": "Mistral: Mistral Medium 3.5",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262000,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 262K · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "mistral-small-3.1-24b-instruct",
+   "name": "Mistral: Mistral Small 3.1 24B",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 128000,
+   "contextLabel": "128K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 128K · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "mistral-small-2603",
+   "name": "Mistral: Mistral Small 4",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262000,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 262K · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "moondream3-preview",
+   "name": "Moondream 3 Preview",
+   "providers": [
+    "moondream"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": true,
+   "price": "$0",
+   "budget": "$5/month shared workspace usage credits",
+   "sizeLabel": "9B",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "moondream · رؤية · $5/month shared workspace usage credits · مجاني"
+  },
+  {
+   "id": "@cf/moondream/moondream3.1-9B-A2B",
+   "name": "Moondream 3.1 9B A2B",
+   "providers": [
+    "cloudflare",
+    "moondream"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 32768,
+   "contextLabel": "33K",
+   "tools": false,
+   "vision": true,
+   "price": "$0",
+   "budget": "~10-20M",
+   "sizeLabel": "Small",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "cloudflare، moondream · سياق 33K · رؤية · ~10-20M · مجاني"
+  },
+  {
+   "id": "nvidia/nemotron-3.5-super-vl:free",
+   "name": "Nemotron 3.5 Super VL",
+   "providers": [
+    "openrouter",
+    "kilo",
+    "llmtr"
+   ],
+   "providersCount": 3,
+   "endpoints": 3,
+   "context": 1000000,
+   "contextLabel": "1M",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Daily free-route allowance",
+   "sizeLabel": "120B MoE",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "openrouter، kilo، llmtr · سياق 1M · Daily free-route allowance · مجاني"
+  },
+  {
+   "id": "nvidia-nemotron-3-nano-30b-a3b",
+   "name": "NVIDIA Nemotron 3 Nano 30B A3B",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "gpt-oss-20b",
+   "name": "OpenAI: GPT OSS 20B",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 128000,
+   "contextLabel": "128K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 128K · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "gpt-6-luna",
+   "name": "OpenAI: GPT-6 Luna",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 1050000,
+   "contextLabel": "1.05M",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Large",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 1.05M · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "plugsky-lite",
+   "name": "Plugsky Lite",
+   "providers": [
+    "plugsky"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Ongoing Free plan; shared fair use",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "plugsky · سياق 131K · Ongoing Free plan; shared fair use · مجاني"
+  },
+  {
+   "id": "plugsky-micro",
+   "name": "Plugsky Micro",
+   "providers": [
+    "plugsky"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Ongoing Free plan; shared fair use",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "plugsky · سياق 262K · Ongoing Free plan; shared fair use · مجاني"
+  },
+  {
+   "id": "qwen3-14b:fp8",
+   "name": "Qwen 3 14B (fp8)",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "qwen3-vl-235b-a22b-instruct:fp8",
+   "name": "Qwen 3 VL 235B A22B Instruct (fp8)",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "qwen3-vl-30b-a3b-instruct:fp8",
+   "name": "Qwen 3 VL 30B A3B Instruct (fp8)",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "qwen3-6-35b-a3b",
+   "name": "Qwen 3.6 35B A3B",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "qwen2-5-72b-instruct:fp8",
+   "name": "Qwen2.5 72B FP8",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "qwen3-30b-a3b:fp8",
+   "name": "Qwen3 30B A3B FP8",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "qwen3-32b:fp8",
+   "name": "Qwen3 32B FP8",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "qwen3-coder-480b-a35b-instruct:turbo",
+   "name": "Qwen3 Coder 480B A35B Instruct (turbo)",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "qwen3-next-80b-a3b-instruct:fp8",
+   "name": "Qwen3 Next 80B A3B Instruct (fp8)",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "qwen3-5-35b-a3b",
+   "name": "Qwen3.5 35B A3B",
+   "providers": [
+    "inferbase"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "5,000 requests/month; 100 requests and $0.50 usage/day shared",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "inferbase · سياق 8K · 5,000 requests/month; 100 requests and $0.50 usage/day shared · مجاني"
+  },
+  {
+   "id": "qwen3.8-27b-omnimerge-v6",
+   "name": "Qwen3.8-27B-Omnimerge-v6",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262000,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 262K · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "qwen3.8-27b-swift",
+   "name": "Qwen3.8-27B-Swift",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262000,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 262K · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "qwen3.8-flash-next",
+   "name": "Qwen3.8-Flash-Next",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262000,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 262K · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "simba-3.0",
+   "name": "Simba 3.0",
+   "providers": [
+    "speechify"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "",
+   "sizeLabel": "TTS",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "speechify · مجاني"
+  },
+  {
+   "id": "simba-3.2",
+   "name": "Simba 3.2",
+   "providers": [
+    "speechify"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "",
+   "sizeLabel": "TTS",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "speechify · مجاني"
+  },
+  {
+   "id": "stepfun-ai/step-5-preview",
+   "name": "Step 5 Preview",
+   "providers": [
+    "nvidia",
+    "speka"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Ongoing developer prototyping",
+   "sizeLabel": "Preview",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "nvidia، speka · Ongoing developer prototyping · مجاني"
+  },
+  {
+   "id": "hy4-preview",
+   "name": "Tencent: Hy4 Preview",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 1000000,
+   "contextLabel": "1M",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Large",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 1M · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "mimo-v2.6-flash",
+   "name": "Xiaomi: MiMo V2.6 Flash",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 1000000,
+   "contextLabel": "1M",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Large",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 1M · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "glm-4.5-air",
+   "name": "ZhipuAI: GLM 4.5 Air",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131000,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Gateway",
+   "intelligenceRank": 50,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 131K · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "typhoon-v2.5-30b-a3b-instruct",
+   "name": "Typhoon 2.5 30B A3B Instruct",
+   "providers": [
+    "typhoon"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "Ongoing free research API (shared rate limits)",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 50,
+   "speedRank": 20,
+   "desc": "typhoon · سياق 131K · يدعم الأدوات · Ongoing free research API (shared rate limits) · مجاني"
+  },
+  {
+   "id": "free/gpt-6-luna",
+   "name": "Gpt 6 Luna",
+   "providers": [
+    "apinex"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 1000000,
+   "contextLabel": "1M",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "10M weighted tokens/day shared across APINex free routes; 3x token multiplier; 5 requests/minute/account",
+   "sizeLabel": "",
+   "intelligenceRank": 50,
+   "speedRank": 50,
+   "desc": "apinex · سياق 1M · 10M weighted tokens/day shared across APINex free routes; 3x token multiplier; 5 requests/minute/account · مجاني"
+  },
+  {
+   "id": "z-ai/glm-5",
+   "name": "GLM 5",
+   "providers": [
+    "aclide"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Large",
+   "intelligenceRank": 51,
+   "speedRank": 10,
+   "desc": "aclide · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "qwen/qwen3.6-plus:free",
+   "name": "Qwen3.6 Plus",
+   "providers": [
+    "aclide"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Large",
+   "intelligenceRank": 53,
+   "speedRank": 9,
+   "desc": "aclide · يدعم الأدوات · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "z-ai/glm-5-turbo",
+   "name": "GLM-5 Turbo",
+   "providers": [
+    "aclide"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Large",
+   "intelligenceRank": 54,
+   "speedRank": 10,
+   "desc": "aclide · يدعم الأدوات · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "ling-3.0-flash-vl-free",
+   "name": "ling-3.0-flash-vl",
+   "providers": [
+    "waterfall"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · community rate limit",
+   "sizeLabel": "Large",
+   "intelligenceRank": 57,
+   "speedRank": 4,
+   "desc": "waterfall · سياق 262K · free · community rate limit · مجاني"
+  },
+  {
+   "id": "gemini-robotics-er-2-preview",
+   "name": "Gemini Robotics-ER 2 Preview",
+   "providers": [
+    "google"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": true,
+   "price": "$0",
+   "budget": "~3M",
+   "sizeLabel": "Large",
+   "intelligenceRank": 57,
+   "speedRank": 5,
+   "desc": "google · سياق 131K · رؤية · ~3M · مجاني"
+  },
+  {
+   "id": "laguna-s-2.1",
+   "name": "Laguna S 2.1",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262000,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Large",
+   "intelligenceRank": 57,
+   "speedRank": 9,
+   "desc": "electronhub · سياق 262K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "laguna-s-2.1-free",
+   "name": "laguna-s-2.1",
+   "providers": [
+    "waterfall"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · community rate limit",
+   "sizeLabel": "Large",
+   "intelligenceRank": 57,
+   "speedRank": 9,
+   "desc": "waterfall · سياق 262K · free · community rate limit · مجاني"
+  },
+  {
+   "id": "qwen/qwen3.7-plus:free",
+   "name": "Qwen3.7 Plus",
+   "providers": [
+    "aclide"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Large",
+   "intelligenceRank": 57,
+   "speedRank": 9,
+   "desc": "aclide · يدعم الأدوات · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "z-ai/glm-5v-turbo",
+   "name": "GLM-5V Turbo",
+   "providers": [
+    "aclide"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Large",
+   "intelligenceRank": 57,
+   "speedRank": 10,
+   "desc": "aclide · يدعم الأدوات · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "poolside/laguna-s-2.1:free",
+   "name": "Poolside Laguna S 2.1",
+   "providers": [
+    "gizmo"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "1,000 free-model requests/month · shared account quota",
+   "sizeLabel": "Large",
+   "intelligenceRank": 57,
+   "speedRank": 10,
+   "desc": "gizmo · سياق 262K · 1,000 free-model requests/month · shared account quota · مجاني"
+  },
+  {
+   "id": "deepseek-v4-flash-thinking",
+   "name": "DeepSeek V4 Flash Thinking",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Large",
+   "intelligenceRank": 59,
+   "speedRank": 10,
+   "desc": "electronhub · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "gpt-5.4-mini",
+   "name": "GPT 5.4 Mini",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 400000,
+   "contextLabel": "400K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Large",
+   "intelligenceRank": 59,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 400K · يدعم الأدوات · رؤية · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "minimax-m2.7",
+   "name": "MiniMax M2.7",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 200000,
+   "contextLabel": "200K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Large",
+   "intelligenceRank": 61,
+   "speedRank": 5,
+   "desc": "electronhub · سياق 200K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "minimax-m2.5",
+   "name": "MiniMax M2.5",
+   "providers": [
+    "electronhub",
+    "septor"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 200000,
+   "contextLabel": "200K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Large",
+   "intelligenceRank": 61,
+   "speedRank": 8,
+   "desc": "electronhub، septor · سياق 200K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "nvidia/nemotron-3-ultra-550b-a55b",
+   "name": "Nemotron-3 Ultra 550B",
+   "providers": [
+    "nvidia"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 1048576,
+   "contextLabel": "1.05M",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 40 RPM",
+   "sizeLabel": "Large",
+   "intelligenceRank": 61,
+   "speedRank": 8,
+   "desc": "nvidia · سياق 1.05M · يدعم الأدوات · free · 40 RPM · مجاني"
+  },
+  {
+   "id": "nvidia/nemotron-3-ultra-550b-a55b:free",
+   "name": "Nemotron 3 Ultra 550B",
+   "providers": [
+    "openrouter",
+    "kilo",
+    "requesty",
+    "speka",
+    "llmtr",
+    "gizmo"
+   ],
+   "providersCount": 6,
+   "endpoints": 6,
+   "context": 1048576,
+   "contextLabel": "1.05M",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 50 req/day account-wide (1,000 after a $10 purchase)",
+   "sizeLabel": "Large",
+   "intelligenceRank": 61,
+   "speedRank": 9,
+   "desc": "openrouter، kilo، requesty، speka، llmtr، gizmo · سياق 1.05M · يدعم الأدوات · free · 50 req/day account-wide (1,000 after a $10 purchase) · مجاني"
+  },
+  {
+   "id": "nemotron-3-ultra-550b-a55b",
+   "name": "Nemotron 3 Ultra",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 1000000,
+   "contextLabel": "1M",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Large",
+   "intelligenceRank": 61,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 1M · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "gemini-3.5-flash-lite",
+   "name": "Gemini 3.5 Flash Lite",
+   "providers": [
+    "google",
+    "electronhub"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 1048576,
+   "contextLabel": "1.05M",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "~3M",
+   "sizeLabel": "Large",
+   "intelligenceRank": 63,
+   "speedRank": 3,
+   "desc": "google، electronhub · سياق 1.05M · يدعم الأدوات · رؤية · ~3M · مجاني"
+  },
+  {
+   "id": "agnes-2.5-flash",
+   "name": "Agnes 2.5 Flash",
+   "providers": [
+    "agnes"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · promo $0/token",
+   "sizeLabel": "Large",
+   "intelligenceRank": 63,
+   "speedRank": 5,
+   "desc": "agnes · سياق 262K · يدعم الأدوات · رؤية · free · promo $0/token · مجاني"
+  },
+  {
+   "id": "gemini-flash-lite-latest",
+   "name": "Gemini Flash Lite (latest alias)",
+   "providers": [
+    "google"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "~3M",
+   "sizeLabel": "Large",
+   "intelligenceRank": 63,
+   "speedRank": 10,
+   "desc": "google · يدعم الأدوات · رؤية · ~3M · مجاني"
+  },
+  {
+   "id": "nex-n2.5-mini-free",
+   "name": "nex-n2.5-mini",
+   "providers": [
+    "waterfall"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · community rate limit",
+   "sizeLabel": "Large",
+   "intelligenceRank": 63,
+   "speedRank": 10,
+   "desc": "waterfall · سياق 262K · free · community rate limit · مجاني"
+  },
+  {
+   "id": "ling-3.0-flash-sante-free",
+   "name": "ling-3.0-flash-sante",
+   "providers": [
+    "waterfall"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · community rate limit",
+   "sizeLabel": "Large",
+   "intelligenceRank": 65,
+   "speedRank": 4,
+   "desc": "waterfall · سياق 262K · free · community rate limit · مجاني"
+  },
+  {
+   "id": "sensenova/sensenova-6.8-flash-lite",
+   "name": "SenseNova 6.8 Flash-Lite",
+   "providers": [
+    "xkiro"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · 500K tokens/day (1M with Telegram)",
+   "sizeLabel": "Large",
+   "intelligenceRank": 65,
+   "speedRank": 6,
+   "desc": "xkiro · سياق 262K · يدعم الأدوات · رؤية · free · 500K tokens/day (1M with Telegram) · مجاني"
+  },
+  {
+   "id": "qwen/qwen3.6-27b:free",
+   "name": "Qwen3.6 27B",
+   "providers": [
+    "ovh",
+    "aclide"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Large",
+   "intelligenceRank": 65,
+   "speedRank": 9,
+   "desc": "ovh، aclide · سياق 131K · يدعم الأدوات · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "gpt-5.4-nano",
+   "name": "GPT 5.4 Nano",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 400000,
+   "contextLabel": "400K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Large",
+   "intelligenceRank": 65,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 400K · يدعم الأدوات · رؤية · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "muse-glimmer-30b:free",
+   "name": "Muse Glimmer 30B",
+   "providers": [
+    "requesty",
+    "nvidia",
+    "routeway",
+    "speka",
+    "blockrun"
+   ],
+   "providersCount": 5,
+   "endpoints": 5,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · zero-priced route",
+   "sizeLabel": "Large",
+   "intelligenceRank": 67,
+   "speedRank": 5,
+   "desc": "requesty، nvidia، routeway، speka، blockrun · سياق 131K · يدعم الأدوات · رؤية · free · zero-priced route · مجاني"
+  },
+  {
+   "id": "aion-labs/aion-3.0",
+   "name": "Aion 3.0",
+   "providers": [
+    "aion"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 20k tok/day",
+   "sizeLabel": "Large",
+   "intelligenceRank": 67,
+   "speedRank": 6,
+   "desc": "aion · سياق 131K · free · 20k tok/day · مجاني"
+  },
+  {
+   "id": "qwen/qwen3.5-omni-plus:free",
+   "name": "Qwen3.5 Omni Plus",
+   "providers": [
+    "aclide"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Large",
+   "intelligenceRank": 67,
+   "speedRank": 9,
+   "desc": "aclide · يدعم الأدوات · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "step-3.7-flash",
+   "name": "Step 3.7 Flash",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 256000,
+   "contextLabel": "256K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Large",
+   "intelligenceRank": 68,
+   "speedRank": 3,
+   "desc": "electronhub · سياق 256K · يدعم الأدوات · رؤية · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "qwen/qwen3.7-flash:free",
+   "name": "Qwen3.7 Flash",
+   "providers": [
+    "bazaarlink",
+    "electronhub"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 1000000,
+   "contextLabel": "1M",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · shared rate limit",
+   "sizeLabel": "Large",
+   "intelligenceRank": 69,
+   "speedRank": 5,
+   "desc": "bazaarlink، electronhub · سياق 1M · يدعم الأدوات · رؤية · free · shared rate limit · مجاني"
+  },
+  {
+   "id": "aisingapore/Qwen-SEA-LION-v4.5-27B-IT",
+   "name": "Qwen SEA-LION v4.5 27B",
+   "providers": [
+    "sealion"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 32768,
+   "contextLabel": "33K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 10 RPM",
+   "sizeLabel": "Large",
+   "intelligenceRank": 69,
+   "speedRank": 7,
+   "desc": "sealion · سياق 33K · free · 10 RPM · مجاني"
+  },
+  {
+   "id": "google/gemma-4-31b-it:free",
+   "name": "Gemma 4 31B",
+   "providers": [
+    "nvidia",
+    "openrouter",
+    "requesty",
+    "electronhub"
+   ],
+   "providersCount": 4,
+   "endpoints": 4,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · 50 req/day account-wide (1,000 after a $10 purchase)",
+   "sizeLabel": "Large",
+   "intelligenceRank": 69,
+   "speedRank": 9,
+   "desc": "nvidia، openrouter، requesty، electronhub · سياق 262K · يدعم الأدوات · رؤية · free · 50 req/day account-wide (1,000 after a $10 purchase) · مجاني"
+  },
+  {
+   "id": "qwen/qwen3.5-plus:free",
+   "name": "Qwen3.5 Plus",
+   "providers": [
+    "aclide"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Large",
+   "intelligenceRank": 69,
+   "speedRank": 9,
+   "desc": "aclide · يدعم الأدوات · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "gemini-3-flash-preview",
+   "name": "Gemini 3 Flash Preview",
+   "providers": [
+    "google"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 1048576,
+   "contextLabel": "1.05M",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "~3M",
+   "sizeLabel": "Large",
+   "intelligenceRank": 71,
+   "speedRank": 5,
+   "desc": "google · سياق 1.05M · يدعم الأدوات · رؤية · ~3M · مجاني"
+  },
+  {
+   "id": "qwen/qwen3.5-397b-a17b:free",
+   "name": "Qwen3.5 397B",
+   "providers": [
+    "ovh",
+    "aclide"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Large",
+   "intelligenceRank": 71,
+   "speedRank": 9,
+   "desc": "ovh، aclide · سياق 262K · يدعم الأدوات · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "Qwen/Qwen3.5-397B-A17B",
+   "name": "Qwen3.5 397B A17B",
+   "providers": [
+    "modelscope"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Daily login: 200 credits + 50 for linked Alibaba Cloud; 24h expiry; shared; noncommercial experience",
+   "sizeLabel": "Large",
+   "intelligenceRank": 71,
+   "speedRank": 9,
+   "desc": "modelscope · سياق 262K · Daily login: 200 credits + 50 for linked Alibaba Cloud; 24h expiry; shared; noncommercial experience · مجاني"
+  },
+  {
+   "id": "qwen/qwen3.6-35b-a3b:free",
+   "name": "Qwen3.6 35B A3B",
+   "providers": [
+    "aclide"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Large",
+   "intelligenceRank": 71,
+   "speedRank": 9,
+   "desc": "aclide · يدعم الأدوات · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "gemma-4-26b-a4b-it",
+   "name": "Gemma 4 26B IT",
+   "providers": [
+    "google"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 32768,
+   "contextLabel": "33K",
+   "tools": false,
+   "vision": true,
+   "price": "$0",
+   "budget": "~30M",
+   "sizeLabel": "Large",
+   "intelligenceRank": 73,
+   "speedRank": 4,
+   "desc": "google · سياق 33K · رؤية · ~30M · مجاني"
+  },
+  {
+   "id": "step-3.5-flash",
+   "name": "Step 3.5 Flash",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 256000,
+   "contextLabel": "256K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Large",
+   "intelligenceRank": 73,
+   "speedRank": 4,
+   "desc": "electronhub · سياق 256K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "google/gemma-4-26b-a4b-it:free",
+   "name": "Gemma 4 26B-A4B",
+   "providers": [
+    "openrouter"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 50 req/day account-wide (1,000 after a $10 purchase)",
+   "sizeLabel": "Large",
+   "intelligenceRank": 73,
+   "speedRank": 9,
+   "desc": "openrouter · سياق 262K · free · 50 req/day account-wide (1,000 after a $10 purchase) · مجاني"
+  },
+  {
+   "id": "anthropic/claude-haiku-4.5",
+   "name": "Claude Haiku 4.5",
+   "providers": [
+    "aclide"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Large",
+   "intelligenceRank": 73,
+   "speedRank": 10,
+   "desc": "aclide · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "gemma-4-26b",
+   "name": "Gemma 4 26B",
+   "providers": [
+    "logfare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · fair use · traffic logged",
+   "sizeLabel": "Large",
+   "intelligenceRank": 73,
+   "speedRank": 10,
+   "desc": "logfare · free · fair use · traffic logged · مجاني"
+  },
+  {
+   "id": "gemma-4-26b-a4b-it",
+   "name": "Gemma 4 26B A4B",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262000,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Large",
+   "intelligenceRank": 73,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 262K · يدعم الأدوات · رؤية · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "gpt-5-mini",
+   "name": "GPT 5 Mini",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 400000,
+   "contextLabel": "400K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Large",
+   "intelligenceRank": 73,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 400K · يدعم الأدوات · رؤية · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "@cf/google/gemma-4-26b-a4b-it",
+   "name": "Gemma 4 26B-A4B it",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "~10-20M",
+   "sizeLabel": "Large",
+   "intelligenceRank": 73,
+   "speedRank": 11,
+   "desc": "cloudflare · سياق 262K · ~10-20M · مجاني"
+  },
+  {
+   "id": "koboldcpp/gemma-4-31B-it-heretic",
+   "name": "Gemma 4 31B Heretic",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 4096,
+   "contextLabel": "4K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Large",
+   "intelligenceRank": 73,
+   "speedRank": 206,
+   "desc": "aihorde · سياق 4K · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "google/gemini-3.1-flash-lite",
+   "name": "Gemini 3.1 Flash-Lite",
+   "providers": [
+    "google",
+    "dreamprompting"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 1048576,
+   "contextLabel": "1.05M",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · 500K tokens/day · 5,000 req/day",
+   "sizeLabel": "Large",
+   "intelligenceRank": 75,
+   "speedRank": 3,
+   "desc": "google، dreamprompting · سياق 1.05M · يدعم الأدوات · رؤية · free · 500K tokens/day · 5,000 req/day · مجاني"
+  },
+  {
+   "id": "aion-labs/aion-3.0-mini",
+   "name": "Aion 3.0 Mini",
+   "providers": [
+    "aion"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 20k tok/day",
+   "sizeLabel": "Large",
+   "intelligenceRank": 75,
+   "speedRank": 5,
+   "desc": "aion · سياق 131K · free · 20k tok/day · مجاني"
+  },
+  {
+   "id": "gemini-3.1-flash-lite-preview",
+   "name": "Gemini 3.1 Flash Lite Preview",
+   "providers": [
+    "google"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "~3M",
+   "sizeLabel": "Large",
+   "intelligenceRank": 75,
+   "speedRank": 10,
+   "desc": "google · يدعم الأدوات · رؤية · ~3M · مجاني"
+  },
+  {
+   "id": "qwen/qwen3-max:free",
+   "name": "Qwen3 Max",
+   "providers": [
+    "aclide"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Large",
+   "intelligenceRank": 76,
+   "speedRank": 9,
+   "desc": "aclide · يدعم الأدوات · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "ZhipuAI/GLM-4.7-Flash",
+   "name": "GLM-4.7 Flash",
+   "providers": [
+    "cloudflare",
+    "zhipu",
+    "modelscope"
+   ],
+   "providersCount": 3,
+   "endpoints": 3,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "Daily login: 200 credits + 50 for linked Alibaba Cloud; 24h expiry; shared; noncommercial experience",
+   "sizeLabel": "Large",
+   "intelligenceRank": 77,
+   "speedRank": 4,
+   "desc": "cloudflare، zhipu، modelscope · سياق 131K · يدعم الأدوات · Daily login: 200 credits + 50 for linked Alibaba Cloud; 24h expiry; shared; noncommercial experience · مجاني"
+  },
+  {
+   "id": "qwen/qwen3.5-flash:free",
+   "name": "Qwen3.5 Flash",
+   "providers": [
+    "aclide"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Large",
+   "intelligenceRank": 77,
+   "speedRank": 6,
+   "desc": "aclide · يدعم الأدوات · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "poolside/laguna-xs-2.1:free",
+   "name": "Poolside Laguna XS 2.1",
+   "providers": [
+    "nvidia",
+    "speka",
+    "gizmo",
+    "blockrun"
+   ],
+   "providersCount": 4,
+   "endpoints": 4,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "1,000 free-model requests/month · shared account quota",
+   "sizeLabel": "Large",
+   "intelligenceRank": 77,
+   "speedRank": 8,
+   "desc": "nvidia، speka، gizmo، blockrun · سياق 262K · يدعم الأدوات · 1,000 free-model requests/month · shared account quota · مجاني"
+  },
+  {
+   "id": "z-ai/glm-4.7-flashx",
+   "name": "GLM-4.7 FlashX",
+   "providers": [
+    "aclide"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Large",
+   "intelligenceRank": 77,
+   "speedRank": 10,
+   "desc": "aclide · يدعم الأدوات · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "laguna-xs-2.1",
+   "name": "Laguna XS 2.1",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262000,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Large",
+   "intelligenceRank": 77,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 262K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "mistralai/mistral-medium-3.5",
+   "name": "Mistral Medium 3.5",
+   "providers": [
+    "xkiro",
+    "aclide"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · 500K tokens/day (1M with Telegram)",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 79,
+   "speedRank": 6,
+   "desc": "xkiro، aclide · سياق 262K · يدعم الأدوات · رؤية · free · 500K tokens/day (1M with Telegram) · مجاني"
+  },
+  {
+   "id": "Qwen3.5-9B",
+   "name": "Qwen3.5 9B",
+   "providers": [
+    "ovh"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 2/min per IP",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 79,
+   "speedRank": 9,
+   "desc": "ovh · سياق 262K · يدعم الأدوات · free · 2/min per IP · مجاني"
+  },
+  {
+   "id": "kilo-auto/free",
+   "name": "Kilo Auto Free",
+   "providers": [
+    "kilo"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 256000,
+   "contextLabel": "256K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 200/hr per IP",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 79,
+   "speedRank": 10,
+   "desc": "kilo · سياق 256K · يدعم الأدوات · free · 200/hr per IP · مجاني"
+  },
+  {
+   "id": "nvidia/nemotron-3.5-lightning:free",
+   "name": "Nemotron 3.5 Lightning",
+   "providers": [
+    "openrouter",
+    "kilo",
+    "electronhub",
+    "gizmo"
+   ],
+   "providersCount": 4,
+   "endpoints": 4,
+   "context": 1048576,
+   "contextLabel": "1.05M",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 50 req/day account-wide (1,000 after a $10 purchase)",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 81,
+   "speedRank": 2,
+   "desc": "openrouter، kilo، electronhub، gizmo · سياق 1.05M · يدعم الأدوات · free · 50 req/day account-wide (1,000 after a $10 purchase) · مجاني"
+  },
+  {
+   "id": "nemotron-3.5-lightning-free",
+   "name": "nemotron-3.5-lightning",
+   "providers": [
+    "waterfall"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 1048576,
+   "contextLabel": "1.05M",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · community rate limit",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 81,
+   "speedRank": 2,
+   "desc": "waterfall · سياق 1.05M · free · community rate limit · مجاني"
+  },
+  {
+   "id": "nvidia/nemotron-3.5-lightning-30b-a3b",
+   "name": "Nemotron 3.5 Lightning 30B",
+   "providers": [
+    "requesty",
+    "speka"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 1048576,
+   "contextLabel": "1.05M",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 200 rpd",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 81,
+   "speedRank": 3,
+   "desc": "requesty، speka · سياق 1.05M · يدعم الأدوات · free · 200 rpd · مجاني"
+  },
+  {
+   "id": "nvidia/nemotron-3.5-lightning-30b-a3b",
+   "name": "Nemotron 3.5 Lightning 30B A3B",
+   "providers": [
+    "nvidia"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 1000000,
+   "contextLabel": "1M",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 40 RPM",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 81,
+   "speedRank": 4,
+   "desc": "nvidia · سياق 1M · يدعم الأدوات · free · 40 RPM · مجاني"
+  },
+  {
+   "id": "google/gemini-2.5-flash",
+   "name": "Gemini 2.5 Flash",
+   "providers": [
+    "google",
+    "electronhub",
+    "dreamprompting"
+   ],
+   "providersCount": 3,
+   "endpoints": 3,
+   "context": 1048576,
+   "contextLabel": "1.05M",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · 500K tokens/day · 5,000 req/day",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 81,
+   "speedRank": 5,
+   "desc": "google، electronhub، dreamprompting · سياق 1.05M · يدعم الأدوات · رؤية · free · 500K tokens/day · 5,000 req/day · مجاني"
+  },
+  {
+   "id": "gpt-4.1",
+   "name": "GPT 4.1",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 1000000,
+   "contextLabel": "1M",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 81,
+   "speedRank": 7,
+   "desc": "electronhub · سياق 1M · يدعم الأدوات · رؤية · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "nvidia/nemotron-3-super-120b-a12b:free",
+   "name": "Nemotron 3 Super 120B",
+   "providers": [
+    "nvidia",
+    "sealion",
+    "gizmo"
+   ],
+   "providersCount": 3,
+   "endpoints": 3,
+   "context": 1000000,
+   "contextLabel": "1M",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "1,000 free-model requests/month · shared account quota",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 81,
+   "speedRank": 9,
+   "desc": "nvidia، sealion، gizmo · سياق 1M · يدعم الأدوات · 1,000 free-model requests/month · shared account quota · مجاني"
+  },
+  {
+   "id": "nvidia/nvidia/nemotron-3-super-120b-a12b",
+   "name": "Nemotron 3 Super 120B (via NVIDIA)",
+   "providers": [
+    "dreamprompting"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 500K tokens/day · 5,000 req/day",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 81,
+   "speedRank": 9,
+   "desc": "dreamprompting · سياق 262K · free · 500K tokens/day · 5,000 req/day · مجاني"
+  },
+  {
+   "id": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+   "name": "Nemotron 3 Super 120B (via OpenRouter)",
+   "providers": [
+    "dreamprompting"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 500K tokens/day · 5,000 req/day",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 81,
+   "speedRank": 9,
+   "desc": "dreamprompting · سياق 262K · free · 500K tokens/day · 5,000 req/day · مجاني"
+  },
+  {
+   "id": "nemotron-3-super-120b-a12b-free",
+   "name": "nemotron-3-super-120b-a12b",
+   "providers": [
+    "waterfall"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · community rate limit",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 81,
+   "speedRank": 9,
+   "desc": "waterfall · سياق 262K · free · community rate limit · مجاني"
+  },
+  {
+   "id": "openrouter/free",
+   "name": "Free Router",
+   "providers": [
+    "kilo"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 200000,
+   "contextLabel": "200K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · 200/hr per IP",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 81,
+   "speedRank": 10,
+   "desc": "kilo · سياق 200K · يدعم الأدوات · رؤية · free · 200/hr per IP · مجاني"
+  },
+  {
+   "id": "gpt-5-nano",
+   "name": "GPT 5 Nano",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 400000,
+   "contextLabel": "400K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 81,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 400K · يدعم الأدوات · رؤية · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "nemotron-3-super-120b-free",
+   "name": "nemotron-3-super-120b",
+   "providers": [
+    "waterfall"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · community rate limit",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 81,
+   "speedRank": 10,
+   "desc": "waterfall · free · community rate limit · مجاني"
+  },
+  {
+   "id": "command-a-plus-05-2026",
+   "name": "Command A+",
+   "providers": [
+    "cohere"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "~1-2M",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 81,
+   "speedRank": 11,
+   "desc": "cohere · سياق 131K · يدعم الأدوات · رؤية · ~1-2M · مجاني"
+  },
+  {
+   "id": "@cf/nvidia/nemotron-3-120b-a12b",
+   "name": "Nemotron 3 120B",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "~5-10M",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 81,
+   "speedRank": 11,
+   "desc": "cloudflare · سياق 262K · ~5-10M · مجاني"
+  },
+  {
+   "id": "Qwen/Qwen3-235B-A22B-Thinking-2507",
+   "name": "Qwen3 235B A22B Thinking 2507",
+   "providers": [
+    "modelscope"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Daily login: 200 credits + 50 for linked Alibaba Cloud; 24h expiry; shared; noncommercial experience",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 82,
+   "speedRank": 10,
+   "desc": "modelscope · سياق 262K · Daily login: 200 credits + 50 for linked Alibaba Cloud; 24h expiry; shared; noncommercial experience · مجاني"
+  },
+  {
+   "id": "openai/gpt-oss-120b",
+   "name": "GPT-OSS 120B",
+   "providers": [
+    "cloudflare",
+    "groq",
+    "ovh"
+   ],
+   "providersCount": 3,
+   "endpoints": 3,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "~6M",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 83,
+   "speedRank": 2,
+   "desc": "cloudflare، groq، ovh · سياق 131K · يدعم الأدوات · ~6M · مجاني"
+  },
+  {
+   "id": "qwen/qwen3.5-omni-flash:free",
+   "name": "Qwen3.5 Omni Flash",
+   "providers": [
+    "aclide"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 83,
+   "speedRank": 6,
+   "desc": "aclide · يدعم الأدوات · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "aion-labs/aion-2.0",
+   "name": "Aion 2.0",
+   "providers": [
+    "aion"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 20k tok/day",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 83,
+   "speedRank": 7,
+   "desc": "aion · سياق 131K · free · 20k tok/day · مجاني"
+  },
+  {
+   "id": "auto",
+   "name": "Auto route",
+   "providers": [
+    "dreamprompting"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 500K tokens/day · 5,000 req/day",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 83,
+   "speedRank": 7,
+   "desc": "dreamprompting · سياق 131K · free · 500K tokens/day · 5,000 req/day · مجاني"
+  },
+  {
+   "id": "auto:free",
+   "name": "BazaarLink Auto",
+   "providers": [
+    "bazaarlink"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · auto route",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 83,
+   "speedRank": 7,
+   "desc": "bazaarlink · سياق 131K · يدعم الأدوات · free · auto route · مجاني"
+  },
+  {
+   "id": "logfare/auto",
+   "name": "Logfare Auto",
+   "providers": [
+    "logfare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · fair use · traffic logged",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 83,
+   "speedRank": 7,
+   "desc": "logfare · سياق 131K · free · fair use · traffic logged · مجاني"
+  },
+  {
+   "id": "Qwen/Qwen3-235B-A22B-Instruct-2507",
+   "name": "Qwen3 235B A22B Instruct 2507",
+   "providers": [
+    "modelscope",
+    "router9"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Daily login: 200 credits + 50 for linked Alibaba Cloud; 24h expiry; shared; noncommercial experience",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 83,
+   "speedRank": 9,
+   "desc": "modelscope، router9 · سياق 262K · Daily login: 200 credits + 50 for linked Alibaba Cloud; 24h expiry; shared; noncommercial experience · مجاني"
+  },
+  {
+   "id": "qwen3-coder-free",
+   "name": "Qwen3 Coder",
+   "providers": [
+    "septor"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 128000,
+   "contextLabel": "128K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · shared daily allowance",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 83,
+   "speedRank": 10,
+   "desc": "septor · سياق 128K · يدعم الأدوات · free · shared daily allowance · مجاني"
+  },
+  {
+   "id": "groq/openai/gpt-oss-120b",
+   "name": "GPT-OSS 120B (via Groq)",
+   "providers": [
+    "dreamprompting"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 500K tokens/day · 5,000 req/day",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 83,
+   "speedRank": 11,
+   "desc": "dreamprompting · سياق 131K · free · 500K tokens/day · 5,000 req/day · مجاني"
+  },
+  {
+   "id": "mistralai/mistral-small-2603",
+   "name": "Mistral Small 4",
+   "providers": [
+    "xkiro"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · 500K tokens/day (1M with Telegram)",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 85,
+   "speedRank": 6,
+   "desc": "xkiro · سياق 262K · يدعم الأدوات · رؤية · free · 500K tokens/day (1M with Telegram) · مجاني"
+  },
+  {
+   "id": "qwen/qwen3-coder-plus:free",
+   "name": "Qwen3 Coder Plus",
+   "providers": [
+    "aclide"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 85,
+   "speedRank": 9,
+   "desc": "aclide · يدعم الأدوات · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "Qwen/Qwen3-Next-80B-A3B-Thinking",
+   "name": "Qwen3 Next 80B A3B Thinking",
+   "providers": [
+    "modelscope"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Daily login: 200 credits + 50 for linked Alibaba Cloud; 24h expiry; shared; noncommercial experience",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 85,
+   "speedRank": 9,
+   "desc": "modelscope · سياق 262K · Daily login: 200 credits + 50 for linked Alibaba Cloud; 24h expiry; shared; noncommercial experience · مجاني"
+  },
+  {
+   "id": "z-ai/glm-4.5-airx",
+   "name": "GLM-4.5 AirX",
+   "providers": [
+    "aclide"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 85,
+   "speedRank": 10,
+   "desc": "aclide · يدعم الأدوات · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "longcat-flash-chat",
+   "name": "LongCat Flash Chat",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 128000,
+   "contextLabel": "128K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 85,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 128K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "default",
+   "name": "Default",
+   "providers": [
+    "llm7"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Free tier: 100,000 tokens/24h shared",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 87,
+   "speedRank": 7,
+   "desc": "llm7 · Free tier: 100,000 tokens/24h shared · مجاني"
+  },
+  {
+   "id": "qwen/qwen-plus-2025-07-28:free",
+   "name": "Qwen Plus 2025-07-28",
+   "providers": [
+    "aclide"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 87,
+   "speedRank": 9,
+   "desc": "aclide · يدعم الأدوات · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "Qwen/Qwen3-VL-235B-A22B-Instruct",
+   "name": "Qwen3 VL 235B A22B Instruct",
+   "providers": [
+    "modelscope"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": true,
+   "price": "$0",
+   "budget": "Daily login: 200 credits + 50 for linked Alibaba Cloud; 24h expiry; shared; noncommercial experience",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 87,
+   "speedRank": 9,
+   "desc": "modelscope · سياق 131K · رؤية · Daily login: 200 credits + 50 for linked Alibaba Cloud; 24h expiry; shared; noncommercial experience · مجاني"
+  },
+  {
+   "id": "qwen/qwen3-vl-plus:free",
+   "name": "Qwen3 VL Plus",
+   "providers": [
+    "aclide"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 87,
+   "speedRank": 9,
+   "desc": "aclide · يدعم الأدوات · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "gpt-4.1-mini",
+   "name": "GPT 4.1 Mini",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 1000000,
+   "contextLabel": "1M",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 87,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 1M · يدعم الأدوات · رؤية · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "google/diffusiongemma-26b-a4b-it",
+   "name": "DiffusionGemma 26B A4B IT",
+   "providers": [
+    "nvidia"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · 40 RPM",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 88,
+   "speedRank": 6,
+   "desc": "nvidia · سياق 262K · رؤية · free · 40 RPM · مجاني"
+  },
+  {
+   "id": "@cf/qwen/qwq-32b",
+   "name": "QwQ 32B",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "~10-20M",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 88,
+   "speedRank": 6,
+   "desc": "cloudflare · سياق 131K · يدعم الأدوات · ~10-20M · مجاني"
+  },
+  {
+   "id": "Qwen/Qwen3-Coder-30B-A3B-Instruct",
+   "name": "Qwen3 Coder 30B A3B Instruct",
+   "providers": [
+    "modelscope",
+    "electronhub"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "Daily login: 200 credits + 50 for linked Alibaba Cloud; 24h expiry; shared; noncommercial experience",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 88,
+   "speedRank": 8,
+   "desc": "modelscope، electronhub · سياق 262K · يدعم الأدوات · Daily login: 200 credits + 50 for linked Alibaba Cloud; 24h expiry; shared; noncommercial experience · مجاني"
+  },
+  {
+   "id": "Qwen/Qwen3-Next-80B-A3B-Instruct",
+   "name": "Qwen3 Next 80B A3B Instruct",
+   "providers": [
+    "modelscope",
+    "septor"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "Daily login: 200 credits + 50 for linked Alibaba Cloud; 24h expiry; shared; noncommercial experience",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 88,
+   "speedRank": 8,
+   "desc": "modelscope، septor · سياق 262K · يدعم الأدوات · Daily login: 200 credits + 50 for linked Alibaba Cloud; 24h expiry; shared; noncommercial experience · مجاني"
+  },
+  {
+   "id": "openai/gpt-oss-20b",
+   "name": "GPT-OSS 20B",
+   "providers": [
+    "groq",
+    "cloudflare",
+    "ovh",
+    "nvidia",
+    "speka"
+   ],
+   "providersCount": 5,
+   "endpoints": 5,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "~6M",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 89,
+   "speedRank": 2,
+   "desc": "groq، cloudflare، ovh، nvidia، speka · سياق 131K · يدعم الأدوات · ~6M · مجاني"
+  },
+  {
+   "id": "groq/openai/gpt-oss-20b",
+   "name": "GPT-OSS 20B (via Groq)",
+   "providers": [
+    "dreamprompting"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 500K tokens/day · 5,000 req/day",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 89,
+   "speedRank": 2,
+   "desc": "dreamprompting · سياق 131K · free · 500K tokens/day · 5,000 req/day · مجاني"
+  },
+  {
+   "id": "gpt-oss-20b",
+   "name": "gpt-oss-20b",
+   "providers": [
+    "airforce"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 1,000 req/day · 1 req/min",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 89,
+   "speedRank": 2,
+   "desc": "airforce · سياق 131K · free · 1,000 req/day · 1 req/min · مجاني"
+  },
+  {
+   "id": "gemini-2.5-flash-lite",
+   "name": "Gemini 2.5 Flash-Lite",
+   "providers": [
+    "google",
+    "electronhub"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 1048576,
+   "contextLabel": "1.05M",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "~3M",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 89,
+   "speedRank": 3,
+   "desc": "google، electronhub · سياق 1.05M · يدعم الأدوات · رؤية · ~3M · مجاني"
+  },
+  {
+   "id": "mistralai/devstral-medium",
+   "name": "Devstral 2",
+   "providers": [
+    "xkiro",
+    "aclide"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 500K tokens/day (1M with Telegram)",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 89,
+   "speedRank": 7,
+   "desc": "xkiro، aclide · سياق 262K · يدعم الأدوات · free · 500K tokens/day (1M with Telegram) · مجاني"
+  },
+  {
+   "id": "mistral-code-latest",
+   "name": "Mistral Code",
+   "providers": [
+    "mistral"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 256000,
+   "contextLabel": "256K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "~50-100M",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 89,
+   "speedRank": 8,
+   "desc": "mistral · سياق 256K · يدعم الأدوات · ~50-100M · مجاني"
+  },
+  {
+   "id": "mistralai/mistral-large-2512",
+   "name": "Mistral Large 3",
+   "providers": [
+    "xkiro"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · 500K tokens/day (1M with Telegram)",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 89,
+   "speedRank": 8,
+   "desc": "xkiro · سياق 262K · يدعم الأدوات · رؤية · free · 500K tokens/day (1M with Telegram) · مجاني"
+  },
+  {
+   "id": "mistral-code-latest",
+   "name": "mistral-code-latest",
+   "providers": [
+    "airforce"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 256000,
+   "contextLabel": "256K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 1,000 req/day · 1 req/min",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 89,
+   "speedRank": 8,
+   "desc": "airforce · سياق 256K · free · 1,000 req/day · 1 req/min · مجاني"
+  },
+  {
+   "id": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+   "name": "Nemotron 3 Nano 30B Reasoning",
+   "providers": [
+    "openrouter"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 50 req/day account-wide (1,000 after a $10 purchase)",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 89,
+   "speedRank": 9,
+   "desc": "openrouter · سياق 262K · free · 50 req/day account-wide (1,000 after a $10 purchase) · مجاني"
+  },
+  {
+   "id": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+   "name": "Nemotron 3 Nano Omni 30B A3B Reasoning",
+   "providers": [
+    "nvidia"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · 40 RPM",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 89,
+   "speedRank": 9,
+   "desc": "nvidia · سياق 262K · رؤية · free · 40 RPM · مجاني"
+  },
+  {
+   "id": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+   "name": "Nemotron 3 Nano Omni Reasoning",
+   "providers": [
+    "kilo",
+    "requesty",
+    "blockrun"
+   ],
+   "providersCount": 3,
+   "endpoints": 3,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · 200/hr per IP (trial)",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 89,
+   "speedRank": 9,
+   "desc": "kilo، requesty، blockrun · سياق 262K · رؤية · free · 200/hr per IP (trial) · مجاني"
+  },
+  {
+   "id": "nemotron-3-nano-omni-30b-a3b-reasoning-free",
+   "name": "nemotron-3-nano-omni-30b-a3b-reasoning",
+   "providers": [
+    "waterfall"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · community rate limit",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 89,
+   "speedRank": 9,
+   "desc": "waterfall · سياق 262K · free · community rate limit · مجاني"
+  },
+  {
+   "id": "nemotron-3-nano-omni-30b-a3b-reasoning",
+   "name": "Nemotron 3 Nano Omni",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 256000,
+   "contextLabel": "256K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 89,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 256K · يدعم الأدوات · رؤية · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "command-a-reasoning-08-2025",
+   "name": "Command A Reasoning",
+   "providers": [
+    "cohere"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 256000,
+   "contextLabel": "256K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "~1-2M",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 89,
+   "speedRank": 11,
+   "desc": "cohere · سياق 256K · يدعم الأدوات · ~1-2M · مجاني"
+  },
+  {
+   "id": "lfm-2.5-2.6b-free",
+   "name": "lfm-2.5-2.6b",
+   "providers": [
+    "waterfall"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 32768,
+   "contextLabel": "33K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · community rate limit",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 90,
+   "speedRank": 3,
+   "desc": "waterfall · سياق 33K · free · community rate limit · مجاني"
+  },
+  {
+   "id": "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
+   "name": "DeepSeek R1 Distill Qwen 32B",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "~3-5M",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 90,
+   "speedRank": 11,
+   "desc": "cloudflare · سياق 131K · يدعم الأدوات · ~3-5M · مجاني"
+  },
+  {
+   "id": "deepseek-r1-distill-qwen-32b",
+   "name": "R1 Distill Qwen 32B",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131000,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 90,
+   "speedRank": 11,
+   "desc": "electronhub · سياق 131K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "openai/gpt-oss-safeguard-20b",
+   "name": "GPT-OSS Safeguard 20B",
+   "providers": [
+    "groq"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "~6M",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 91,
+   "speedRank": 2,
+   "desc": "groq · سياق 131K · يدعم الأدوات · ~6M · مجاني"
+  },
+  {
+   "id": "glm-4.5-flash",
+   "name": "GLM-4.5 Flash",
+   "providers": [
+    "zhipu"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "~30M",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 91,
+   "speedRank": 4,
+   "desc": "zhipu · سياق 131K · يدعم الأدوات · ~30M · مجاني"
+  },
+  {
+   "id": "qwen/qwen3-omni-flash:free",
+   "name": "Qwen3 Omni Flash",
+   "providers": [
+    "aclide"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Small",
+   "intelligenceRank": 91,
+   "speedRank": 6,
+   "desc": "aclide · يدعم الأدوات · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "gpt-4o",
+   "name": "GPT 4o",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 128000,
+   "contextLabel": "128K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 91,
+   "speedRank": 7,
+   "desc": "electronhub · سياق 128K · يدعم الأدوات · رؤية · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "nvidia/ising-calibration-1.5-31b",
+   "name": "Ising Calibration 1.5 31B",
+   "providers": [
+    "nvidia"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · 40 RPM",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 91,
+   "speedRank": 7,
+   "desc": "nvidia · سياق 131K · رؤية · free · 40 RPM · مجاني"
+  },
+  {
+   "id": "Meta-Llama-3_3-70B-Instruct",
+   "name": "Llama 3.3 70B",
+   "providers": [
+    "ovh"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 2/min per IP",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 91,
+   "speedRank": 9,
+   "desc": "ovh · سياق 131K · يدعم الأدوات · free · 2/min per IP · مجاني"
+  },
+  {
+   "id": "Mistral-Small-3.2-24B-Instruct-2506",
+   "name": "Mistral Small 3.2 24B",
+   "providers": [
+    "ovh",
+    "electronhub"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 2/min per IP",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 91,
+   "speedRank": 9,
+   "desc": "ovh، electronhub · سياق 131K · يدعم الأدوات · free · 2/min per IP · مجاني"
+  },
+  {
+   "id": "chat/ch.at",
+   "name": "ch.at",
+   "providers": [
+    "dreamprompting"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 500K tokens/day · 5,000 req/day",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 91,
+   "speedRank": 10,
+   "desc": "dreamprompting · free · 500K tokens/day · 5,000 req/day · مجاني"
+  },
+  {
+   "id": "cloudflare-vision/@cf/meta/llama-4-scout-17b-16e-instruct",
+   "name": "Llama 4 Scout",
+   "providers": [
+    "cloudflare",
+    "electronhub",
+    "dreamprompting"
+   ],
+   "providersCount": 3,
+   "endpoints": 3,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · 500K tokens/day · 5,000 req/day",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 91,
+   "speedRank": 10,
+   "desc": "cloudflare، electronhub، dreamprompting · سياق 131K · يدعم الأدوات · رؤية · free · 500K tokens/day · 5,000 req/day · مجاني"
+  },
+  {
+   "id": "rnj-1",
+   "name": "rnj-1",
+   "providers": [
+    "airforce"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 1,000 req/day · 1 req/min",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 91,
+   "speedRank": 10,
+   "desc": "airforce · free · 1,000 req/day · 1 req/min · مجاني"
+  },
+  {
+   "id": "unmoderated-gpt",
+   "name": "unmoderated-gpt",
+   "providers": [
+    "airforce"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 1,000 req/day · 1 req/min",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 91,
+   "speedRank": 10,
+   "desc": "airforce · free · 1,000 req/day · 1 req/min · مجاني"
+  },
+  {
+   "id": "cloudflare/@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+   "name": "Llama 3.3 70B fp8-fast",
+   "providers": [
+    "cloudflare",
+    "dreamprompting"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 24000,
+   "contextLabel": "24K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 500K tokens/day · 5,000 req/day",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 91,
+   "speedRank": 11,
+   "desc": "cloudflare، dreamprompting · سياق 24K · يدعم الأدوات · free · 500K tokens/day · 5,000 req/day · مجاني"
+  },
+  {
+   "id": "aisingapore/Qwen-SEA-LION-v4-32B-IT",
+   "name": "Qwen SEA-LION v4 32B",
+   "providers": [
+    "sealion"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 32768,
+   "contextLabel": "33K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 10 RPM",
+   "sizeLabel": "Small",
+   "intelligenceRank": 92,
+   "speedRank": 7,
+   "desc": "sealion · سياق 33K · free · 10 RPM · مجاني"
+  },
+  {
+   "id": "Qwen2.5-VL-72B-Instruct",
+   "name": "Qwen2.5 VL 72B",
+   "providers": [
+    "ovh"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 32768,
+   "contextLabel": "33K",
+   "tools": false,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · 2/min per IP",
+   "sizeLabel": "Small",
+   "intelligenceRank": 92,
+   "speedRank": 9,
+   "desc": "ovh · سياق 33K · رؤية · free · 2/min per IP · مجاني"
+  },
+  {
+   "id": "qwen-2.5-72b-instruct",
+   "name": "Qwen2.5 72B Instruct",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 32000,
+   "contextLabel": "32K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Small",
+   "intelligenceRank": 92,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 32K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "qwen3-30b-a3b-instruct-2507",
+   "name": "Qwen3 30B A3B Instruct 2507",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131000,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Small",
+   "intelligenceRank": 92,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 131K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "@cf/qwen/qwen3-30b-a3b-fp8",
+   "name": "Qwen3 30B-A3B fp8",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "~18-45M",
+   "sizeLabel": "Small",
+   "intelligenceRank": 92,
+   "speedRank": 11,
+   "desc": "cloudflare · سياق 131K · يدعم الأدوات · ~18-45M · مجاني"
+  },
+  {
+   "id": "groq/groq/compound-mini",
+   "name": "Groq Compound Mini",
+   "providers": [
+    "dreamprompting"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 500K tokens/day · 5,000 req/day",
+   "sizeLabel": "Small",
+   "intelligenceRank": 93,
+   "speedRank": 2,
+   "desc": "dreamprompting · سياق 131K · free · 500K tokens/day · 5,000 req/day · مجاني"
+  },
+  {
+   "id": "gpt-4o-mini",
+   "name": "GPT 4o Mini",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 128000,
+   "contextLabel": "128K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Small",
+   "intelligenceRank": 93,
+   "speedRank": 5,
+   "desc": "electronhub · سياق 128K · يدعم الأدوات · رؤية · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "@cf/mistralai/mistral-small-3.1-24b-instruct",
+   "name": "Mistral Small 3.1 24B",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "~10-20M",
+   "sizeLabel": "Small",
+   "intelligenceRank": 93,
+   "speedRank": 7,
+   "desc": "cloudflare · سياق 131K · يدعم الأدوات · رؤية · ~10-20M · مجاني"
+  },
+  {
+   "id": "command-a-vision-07-2025",
+   "name": "Command A Vision",
+   "providers": [
+    "cohere"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 128000,
+   "contextLabel": "128K",
+   "tools": false,
+   "vision": true,
+   "price": "$0",
+   "budget": "~1-2M",
+   "sizeLabel": "Small",
+   "intelligenceRank": 93,
+   "speedRank": 10,
+   "desc": "cohere · سياق 128K · رؤية · ~1-2M · مجاني"
+  },
+  {
+   "id": "koboldcpp/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q4_K_M",
+   "name": "Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q4 K M",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 93,
+   "speedRank": 10,
+   "desc": "aihorde · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "hermes-3-llama-3.1-405b-free",
+   "name": "Hermes 3 Llama 3.1 405B",
+   "providers": [
+    "septor"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 128000,
+   "contextLabel": "128K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · shared daily allowance",
+   "sizeLabel": "Small",
+   "intelligenceRank": 93,
+   "speedRank": 10,
+   "desc": "septor · سياق 128K · يدعم الأدوات · free · shared daily allowance · مجاني"
+  },
+  {
+   "id": "qwen-2.5-32b-instruct",
+   "name": "Qwen2.5 32B Instruct",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131000,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Small",
+   "intelligenceRank": 93,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 131K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "command-a-03-2025",
+   "name": "Command-A",
+   "providers": [
+    "cohere"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "~1-2M",
+   "sizeLabel": "Small",
+   "intelligenceRank": 93,
+   "speedRank": 11,
+   "desc": "cohere · سياق 131K · يدعم الأدوات · ~1-2M · مجاني"
+  },
+  {
+   "id": "koboldcpp/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive",
+   "name": "Gemma 4 E4B Uncensored Aggressive",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 4096,
+   "contextLabel": "4K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 93,
+   "speedRank": 206,
+   "desc": "aihorde · سياق 4K · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "@cf/qwen/qwen2.5-coder-32b-instruct",
+   "name": "Qwen2.5 Coder 32B",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 32768,
+   "contextLabel": "33K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "~10-20M",
+   "sizeLabel": "Small",
+   "intelligenceRank": 94,
+   "speedRank": 7,
+   "desc": "cloudflare · سياق 33K · يدعم الأدوات · ~10-20M · مجاني"
+  },
+  {
+   "id": "qwen-2.5-coder-32b-instruct",
+   "name": "Qwen2.5 Coder 32B Instruct",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 33000,
+   "contextLabel": "33K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Small",
+   "intelligenceRank": 94,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 33K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "meta/llama-3.2-90b-vision-instruct",
+   "name": "Llama 3.2 90B Vision",
+   "providers": [
+    "nvidia"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · 40 RPM",
+   "sizeLabel": "Small",
+   "intelligenceRank": 95,
+   "speedRank": 6,
+   "desc": "nvidia · سياق 131K · يدعم الأدوات · رؤية · free · 40 RPM · مجاني"
+  },
+  {
+   "id": "aisingapore/Llama-SEA-LION-v3-70B-IT",
+   "name": "Llama SEA-LION v3 70B",
+   "providers": [
+    "sealion"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 10 RPM",
+   "sizeLabel": "Small",
+   "intelligenceRank": 95,
+   "speedRank": 6,
+   "desc": "sealion · سياق 131K · free · 10 RPM · مجاني"
+  },
+  {
+   "id": "mistralai/ministral-14b",
+   "name": "Ministral 3 14B",
+   "providers": [
+    "xkiro",
+    "aclide"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 500K tokens/day (1M with Telegram)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 95,
+   "speedRank": 6,
+   "desc": "xkiro، aclide · سياق 262K · يدعم الأدوات · free · 500K tokens/day (1M with Telegram) · مجاني"
+  },
+  {
+   "id": "ministral-14b-latest",
+   "name": "Ministral 14B",
+   "providers": [
+    "mistral"
+   ],
+   "providersCount": 1,
+   "endpoints": 2,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "~50-100M",
+   "sizeLabel": "Small",
+   "intelligenceRank": 95,
+   "speedRank": 8,
+   "desc": "mistral · سياق 262K · يدعم الأدوات · رؤية · ~50-100M · مجاني"
+  },
+  {
+   "id": "ministral-14b-2512",
+   "name": "ministral-14b-2512",
+   "providers": [
+    "airforce"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 1,000 req/day · 1 req/min",
+   "sizeLabel": "Small",
+   "intelligenceRank": 95,
+   "speedRank": 8,
+   "desc": "airforce · سياق 262K · free · 1,000 req/day · 1 req/min · مجاني"
+  },
+  {
+   "id": "ministral-14b-latest",
+   "name": "ministral-14b-latest",
+   "providers": [
+    "airforce"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 1,000 req/day · 1 req/min",
+   "sizeLabel": "Small",
+   "intelligenceRank": 95,
+   "speedRank": 8,
+   "desc": "airforce · سياق 262K · free · 1,000 req/day · 1 req/min · مجاني"
+  },
+  {
+   "id": "koboldcpp/Llama-3.2-3B",
+   "name": "Llama 3.2 3B",
+   "providers": [
+    "cloudflare",
+    "aihorde",
+    "electronhub"
+   ],
+   "providersCount": 3,
+   "endpoints": 3,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 95,
+   "speedRank": 9,
+   "desc": "cloudflare، aihorde، electronhub · سياق 131K · يدعم الأدوات · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "meta-llama/Llama-3.2-3B-Instruct",
+   "name": "Llama-3 2-3B-Instruct",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 95,
+   "speedRank": 9,
+   "desc": "aihorde · سياق 131K · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "Qwen3Guard-Gen-8B",
+   "name": "Qwen3Guard Gen 8B",
+   "providers": [
+    "ovh"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 32768,
+   "contextLabel": "33K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 2/min per IP",
+   "sizeLabel": "Small",
+   "intelligenceRank": 95,
+   "speedRank": 9,
+   "desc": "ovh · سياق 33K · free · 2/min per IP · مجاني"
+  },
+  {
+   "id": "koboldcpp/Llama-3.2-3B-Instruct-Q4_K_M",
+   "name": "Llama-3 2-3B-Instruct-Q4 K M",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 2,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 95,
+   "speedRank": 10,
+   "desc": "aihorde · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "llama-instant",
+   "name": "llama-instant",
+   "providers": [
+    "airforce"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 1,000 req/day · 1 req/min",
+   "sizeLabel": "Small",
+   "intelligenceRank": 95,
+   "speedRank": 10,
+   "desc": "airforce · free · 1,000 req/day · 1 req/min · مجاني"
+  },
+  {
+   "id": "ministral-14b-2512",
+   "name": "Ministral 14B (2512)",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262000,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Small",
+   "intelligenceRank": 95,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 262K · يدعم الأدوات · رؤية · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "qwen-2.5-7b-instruct",
+   "name": "Qwen2.5 7B Instruct",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131000,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Small",
+   "intelligenceRank": 95,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 131K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "qwen-2.5-coder-7b-instruct",
+   "name": "Qwen2.5 Coder 7B Instruct",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 32000,
+   "contextLabel": "32K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Small",
+   "intelligenceRank": 95,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 32K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "koboldcpp/Qwen3-4B-Nymphaea-RP.i1-Q4_K_S",
+   "name": "Qwen3-4B-Nymphaea-RP i1-Q4 K S",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 95,
+   "speedRank": 10,
+   "desc": "aihorde · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "koboldcpp/Qwen/Qwen3.5-0.8B",
+   "name": "Qwen3.5 0.8B",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 4096,
+   "contextLabel": "4K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 95,
+   "speedRank": 206,
+   "desc": "aihorde · سياق 4K · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "aion-labs/aion-rp-llama-3.1-8b",
+   "name": "Aion-RP Llama 3.1 8B",
+   "providers": [
+    "aion"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 32768,
+   "contextLabel": "33K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 20k tok/day",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 4,
+   "desc": "aion · سياق 33K · free · 20k tok/day · مجاني"
+  },
+  {
+   "id": "gemma-3-4b-it",
+   "name": "gemma 3 4b it",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 32000,
+   "contextLabel": "32K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 4,
+   "desc": "electronhub · سياق 32K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "glm-4.6v-flash",
+   "name": "GLM-4.6V Flash",
+   "providers": [
+    "zhipu"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "~30M",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 4,
+   "desc": "zhipu · سياق 131K · يدعم الأدوات · رؤية · ~30M · مجاني"
+  },
+  {
+   "id": "mistralai/ministral-3b",
+   "name": "Ministral 3 3B",
+   "providers": [
+    "xkiro",
+    "aclide"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 500K tokens/day (1M with Telegram)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 4,
+   "desc": "xkiro، aclide · سياق 131K · يدعم الأدوات · free · 500K tokens/day (1M with Telegram) · مجاني"
+  },
+  {
+   "id": "mistralai/ministral-8b",
+   "name": "Ministral 3 8B",
+   "providers": [
+    "mistral",
+    "xkiro",
+    "aclide"
+   ],
+   "providersCount": 3,
+   "endpoints": 3,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 500K tokens/day (1M with Telegram)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 5,
+   "desc": "mistral، xkiro، aclide · سياق 262K · يدعم الأدوات · free · 500K tokens/day (1M with Telegram) · مجاني"
+  },
+  {
+   "id": "aisingapore/Gemma-SEA-LION-v4-27B-IT",
+   "name": "Gemma SEA-LION v4 27B",
+   "providers": [
+    "cloudflare",
+    "sealion"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 10 RPM",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 6,
+   "desc": "cloudflare، sealion · سياق 131K · free · 10 RPM · مجاني"
+  },
+  {
+   "id": "tiny-aya-global",
+   "name": "Tiny Aya Global",
+   "providers": [
+    "cohere"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "1K calls/mo shared",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 6,
+   "desc": "cohere · سياق 8K · 1K calls/mo shared · مجاني"
+  },
+  {
+   "id": "mistral/leanstral-1-5",
+   "name": "Leanstral 1.5",
+   "providers": [
+    "requesty"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 200 rpd",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 7,
+   "desc": "requesty · سياق 262K · يدعم الأدوات · free · 200 rpd · مجاني"
+  },
+  {
+   "id": "nvidia-vision/meta/llama-3.2-11b-vision-instruct",
+   "name": "Llama 3.2 11B Vision",
+   "providers": [
+    "cloudflare",
+    "dreamprompting",
+    "blockrun"
+   ],
+   "providersCount": 3,
+   "endpoints": 3,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · 500K tokens/day · 5,000 req/day",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 7,
+   "desc": "cloudflare، dreamprompting، blockrun · سياق 131K · رؤية · free · 500K tokens/day · 5,000 req/day · مجاني"
+  },
+  {
+   "id": "command-a-translate-08-2025",
+   "name": "Command A Translate",
+   "providers": [
+    "cohere"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 256000,
+   "contextLabel": "256K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "~1-2M",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 8,
+   "desc": "cohere · سياق 256K · يدعم الأدوات · ~1-2M · مجاني"
+  },
+  {
+   "id": "ministral-8b-latest",
+   "name": "ministral-8b-latest",
+   "providers": [
+    "airforce"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 1,000 req/day · 1 req/min",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 8,
+   "desc": "airforce · سياق 262K · free · 1,000 req/day · 1 req/min · مجاني"
+  },
+  {
+   "id": "ministral-8b-2512",
+   "name": "Ministral 8B",
+   "providers": [
+    "mistral"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "Free plan · $10/month shared API credits",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 9,
+   "desc": "mistral · سياق 262K · يدعم الأدوات · رؤية · Free plan · $10/month shared API credits · مجاني"
+  },
+  {
+   "id": "ministral-8b-2512",
+   "name": "ministral-8b-2512",
+   "providers": [
+    "airforce"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 1,000 req/day · 1 req/min",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 9,
+   "desc": "airforce · سياق 262K · free · 1,000 req/day · 1 req/min · مجاني"
+  },
+  {
+   "id": "Qwen3Guard-Gen-0.6B",
+   "name": "Qwen3Guard Gen 0.6B",
+   "providers": [
+    "ovh"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 32768,
+   "contextLabel": "33K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 2/min per IP",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 9,
+   "desc": "ovh · سياق 33K · free · 2/min per IP · مجاني"
+  },
+  {
+   "id": "gemma-3-1b-it",
+   "name": "Gemma 3 1B",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 32000,
+   "contextLabel": "32K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 32K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "hunyuan-a13b-instruct",
+   "name": "Hunyuan A13B Instruct",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 128000,
+   "contextLabel": "128K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 128K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "llama-3.2-1b",
+   "name": "Llama 3.2 1B",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 128000,
+   "contextLabel": "128K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 128K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "ministral-3b-2512",
+   "name": "Ministral 3B",
+   "providers": [
+    "mistral"
+   ],
+   "providersCount": 1,
+   "endpoints": 2,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "Free plan · $10/month shared API credits",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 10,
+   "desc": "mistral · سياق 262K · يدعم الأدوات · رؤية · Free plan · $10/month shared API credits · مجاني"
+  },
+  {
+   "id": "ministral-3b-2512",
+   "name": "Ministral 3B (2512)",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131000,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 131K · يدعم الأدوات · رؤية · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "ministral-8b-2512",
+   "name": "Ministral 8B (2512)",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262000,
+   "contextLabel": "262K",
+   "tools": true,
+   "vision": true,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 262K · يدعم الأدوات · رؤية · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "ministral-3b-2512",
+   "name": "ministral-3b-2512",
+   "providers": [
+    "airforce"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 1,000 req/day · 1 req/min",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 10,
+   "desc": "airforce · سياق 262K · free · 1,000 req/day · 1 req/min · مجاني"
+  },
+  {
+   "id": "ministral-3b-latest",
+   "name": "ministral-3b-latest",
+   "providers": [
+    "airforce"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262144,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 1,000 req/day · 1 req/min",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 10,
+   "desc": "airforce · سياق 262K · free · 1,000 req/day · 1 req/min · مجاني"
+  },
+  {
+   "id": "north-small-translate-09-2026",
+   "name": "North Small Translate",
+   "providers": [
+    "cohere"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 32768,
+   "contextLabel": "33K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "~1-2M",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 10,
+   "desc": "cohere · سياق 33K · ~1-2M · مجاني"
+  },
+  {
+   "id": "phi-4",
+   "name": "phi 4",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 16000,
+   "contextLabel": "16K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 16K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "@cf/meta/llama-3.2-1b-instruct",
+   "name": "Llama 3.2 1B Instruct",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "~10-20M",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 11,
+   "desc": "cloudflare · سياق 131K · ~10-20M · مجاني"
+  },
+  {
+   "id": "koboldcpp/Llama-3.2-1B-Instruct",
+   "name": "Llama-3 2-1B-Instruct",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 11,
+   "desc": "aihorde · سياق 131K · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "koboldcpp/digo-prayudha/unsloth-llama-3.2-1b-gguf",
+   "name": "Llama 3.2 1B Unsloth",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 4096,
+   "contextLabel": "4K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 206,
+   "desc": "aihorde · سياق 4K · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "koboldcpp/Qwen_Qwen3-0.6B-IQ4_XS",
+   "name": "Qwen3 0.6B IQ4",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 4096,
+   "contextLabel": "4K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 97,
+   "speedRank": 206,
+   "desc": "aihorde · سياق 4K · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "gemma-3-12b-it",
+   "name": "gemma 3 12b it",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 32000,
+   "contextLabel": "32K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Small",
+   "intelligenceRank": 99,
+   "speedRank": 4,
+   "desc": "electronhub · سياق 32K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "mistralai/codestral-2508",
+   "name": "Codestral",
+   "providers": [
+    "llm7",
+    "mistral",
+    "xkiro",
+    "dreamprompting"
+   ],
+   "providersCount": 4,
+   "endpoints": 4,
+   "context": 256000,
+   "contextLabel": "256K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 500K tokens/day (1M with Telegram)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 99,
+   "speedRank": 6,
+   "desc": "llm7، mistral، xkiro، dreamprompting · سياق 256K · يدعم الأدوات · free · 500K tokens/day (1M with Telegram) · مجاني"
+  },
+  {
+   "id": "mistralai/codestral-2508",
+   "name": "Codestral 2508",
+   "providers": [
+    "mistral",
+    "electronhub",
+    "aclide"
+   ],
+   "providersCount": 3,
+   "endpoints": 3,
+   "context": 256000,
+   "contextLabel": "256K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "€20/month shared internal usage credits · no card",
+   "sizeLabel": "Small",
+   "intelligenceRank": 99,
+   "speedRank": 6,
+   "desc": "mistral، electronhub، aclide · سياق 256K · يدعم الأدوات · €20/month shared internal usage credits · no card · مجاني"
+  },
+  {
+   "id": "codestral-2508",
+   "name": "codestral-2508",
+   "providers": [
+    "airforce"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 256000,
+   "contextLabel": "256K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 1,000 req/day · 1 req/min",
+   "sizeLabel": "Small",
+   "intelligenceRank": 99,
+   "speedRank": 6,
+   "desc": "airforce · سياق 256K · free · 1,000 req/day · 1 req/min · مجاني"
+  },
+  {
+   "id": "mistral-Nemo-Instruct-2407",
+   "name": "Mistral Nemo Instruct 2407",
+   "providers": [
+    "llm7"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 128000,
+   "contextLabel": "128K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "Free tier: 100,000 tokens/24h shared",
+   "sizeLabel": "Small",
+   "intelligenceRank": 99,
+   "speedRank": 6,
+   "desc": "llm7 · سياق 128K · يدعم الأدوات · Free tier: 100,000 tokens/24h shared · مجاني"
+  },
+  {
+   "id": "tiny-aya-earth",
+   "name": "Tiny Aya Earth",
+   "providers": [
+    "cohere"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "1K calls/mo shared",
+   "sizeLabel": "Small",
+   "intelligenceRank": 99,
+   "speedRank": 6,
+   "desc": "cohere · سياق 8K · 1K calls/mo shared · مجاني"
+  },
+  {
+   "id": "tiny-aya-fire",
+   "name": "Tiny Aya Fire",
+   "providers": [
+    "cohere"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "1K calls/mo shared",
+   "sizeLabel": "Small",
+   "intelligenceRank": 99,
+   "speedRank": 6,
+   "desc": "cohere · سياق 8K · 1K calls/mo shared · مجاني"
+  },
+  {
+   "id": "tiny-aya-water",
+   "name": "Tiny Aya Water",
+   "providers": [
+    "cohere"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "1K calls/mo shared",
+   "sizeLabel": "Small",
+   "intelligenceRank": 99,
+   "speedRank": 6,
+   "desc": "cohere · سياق 8K · 1K calls/mo shared · مجاني"
+  },
+  {
+   "id": "mistral-code-fim-latest",
+   "name": "Mistral Code FIM",
+   "providers": [
+    "mistral"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 256000,
+   "contextLabel": "256K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Free plan · $10/month shared API credits",
+   "sizeLabel": "Small",
+   "intelligenceRank": 99,
+   "speedRank": 7,
+   "desc": "mistral · سياق 256K · Free plan · $10/month shared API credits · مجاني"
+  },
+  {
+   "id": "mistral-code-fim-latest",
+   "name": "mistral-code-fim-latest",
+   "providers": [
+    "airforce"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 256000,
+   "contextLabel": "256K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 1,000 req/day · 1 req/min",
+   "sizeLabel": "Small",
+   "intelligenceRank": 99,
+   "speedRank": 7,
+   "desc": "airforce · سياق 256K · free · 1,000 req/day · 1 req/min · مجاني"
+  },
+  {
+   "id": "codestral-latest",
+   "name": "codestral-latest",
+   "providers": [
+    "airforce"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 32000,
+   "contextLabel": "32K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 1,000 req/day · 1 req/min",
+   "sizeLabel": "Small",
+   "intelligenceRank": 99,
+   "speedRank": 8,
+   "desc": "airforce · سياق 32K · free · 1,000 req/day · 1 req/min · مجاني"
+  },
+  {
+   "id": "hermes-4-14b",
+   "name": "Hermes 4 14B",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 40000,
+   "contextLabel": "40K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Small",
+   "intelligenceRank": 99,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 40K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "aphrodite/SicariusSicariiStuff/Impish_LLAMA_4B",
+   "name": "Impish LLAMA 4B",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 99,
+   "speedRank": 10,
+   "desc": "aihorde · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "mistral-tiny-2407",
+   "name": "mistral-tiny-2407",
+   "providers": [
+    "airforce"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 1,000 req/day · 1 req/min",
+   "sizeLabel": "Small",
+   "intelligenceRank": 99,
+   "speedRank": 10,
+   "desc": "airforce · free · 1,000 req/day · 1 req/min · مجاني"
+  },
+  {
+   "id": "mistral-tiny-latest",
+   "name": "mistral-tiny-latest",
+   "providers": [
+    "airforce"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 1,000 req/day · 1 req/min",
+   "sizeLabel": "Small",
+   "intelligenceRank": 99,
+   "speedRank": 10,
+   "desc": "airforce · free · 1,000 req/day · 1 req/min · مجاني"
+  },
+  {
+   "id": "open-mistral-nemo-2407",
+   "name": "Open Mistral Nemo 2407",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131000,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Small",
+   "intelligenceRank": 99,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 131K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "open-mistral-nemo",
+   "name": "open-mistral-nemo",
+   "providers": [
+    "airforce"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 1,000 req/day · 1 req/min",
+   "sizeLabel": "Small",
+   "intelligenceRank": 99,
+   "speedRank": 10,
+   "desc": "airforce · free · 1,000 req/day · 1 req/min · مجاني"
+  },
+  {
+   "id": "open-mistral-nemo-2407",
+   "name": "open-mistral-nemo-2407",
+   "providers": [
+    "airforce"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131000,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 1,000 req/day · 1 req/min",
+   "sizeLabel": "Small",
+   "intelligenceRank": 99,
+   "speedRank": 10,
+   "desc": "airforce · سياق 131K · free · 1,000 req/day · 1 req/min · مجاني"
+  },
+  {
+   "id": "koboldcpp/L3-8B-Stheno-v3.2",
+   "name": "Llama 3 Stheno 8B v3.2",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 4096,
+   "contextLabel": "4K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 99,
+   "speedRank": 206,
+   "desc": "aihorde · سياق 4K · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "koboldcpp/L3-Super-Nova-RP-8B",
+   "name": "Llama 3 Super Nova RP 8B",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 4096,
+   "contextLabel": "4K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 99,
+   "speedRank": 206,
+   "desc": "aihorde · سياق 4K · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "labs-devstral-small-2512",
+   "name": "Devstral Small 2",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 262000,
+   "contextLabel": "262K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 100,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 262K · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "gemma-4-26b-a4b-it-chimerax:free",
+   "name": "Gemma 4 26B A4B IT chimerax",
+   "providers": [
+    "routeway"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 62000,
+   "contextLabel": "62K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Free daily allowance · shared account quota",
+   "sizeLabel": "Large",
+   "intelligenceRank": 100,
+   "speedRank": 10,
+   "desc": "routeway · سياق 62K · Free daily allowance · shared account quota · مجاني"
+  },
+  {
+   "id": "gemma-4-26b-a4b-it-darksoul:free",
+   "name": "Gemma 4 26B A4B IT darksoul",
+   "providers": [
+    "routeway"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 62000,
+   "contextLabel": "62K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Free daily allowance · shared account quota",
+   "sizeLabel": "Large",
+   "intelligenceRank": 100,
+   "speedRank": 10,
+   "desc": "routeway · سياق 62K · Free daily allowance · shared account quota · مجاني"
+  },
+  {
+   "id": "gemma-4-26b-a4b-it-luminous:free",
+   "name": "Gemma 4 26B A4B IT luminous",
+   "providers": [
+    "routeway"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 62000,
+   "contextLabel": "62K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Free daily allowance · shared account quota",
+   "sizeLabel": "Large",
+   "intelligenceRank": 100,
+   "speedRank": 10,
+   "desc": "routeway · سياق 62K · Free daily allowance · shared account quota · مجاني"
+  },
+  {
+   "id": "gemma-4-26b-a4b-it-meromero:free",
+   "name": "Gemma 4 26B A4B IT meromero",
+   "providers": [
+    "routeway"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 62000,
+   "contextLabel": "62K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Free daily allowance · shared account quota",
+   "sizeLabel": "Large",
+   "intelligenceRank": 100,
+   "speedRank": 10,
+   "desc": "routeway · سياق 62K · Free daily allowance · shared account quota · مجاني"
+  },
+  {
+   "id": "gemma-4-26b-a4b-it-moonlight:free",
+   "name": "Gemma 4 26B A4B IT moonlight",
+   "providers": [
+    "routeway"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 62000,
+   "contextLabel": "62K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Free daily allowance · shared account quota",
+   "sizeLabel": "Large",
+   "intelligenceRank": 100,
+   "speedRank": 10,
+   "desc": "routeway · سياق 62K · Free daily allowance · shared account quota · مجاني"
+  },
+  {
+   "id": "gemma-4-26b-a4b-it-musica:free",
+   "name": "Gemma 4 26B A4B IT musica",
+   "providers": [
+    "routeway"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 62000,
+   "contextLabel": "62K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Free daily allowance · shared account quota",
+   "sizeLabel": "Large",
+   "intelligenceRank": 100,
+   "speedRank": 10,
+   "desc": "routeway · سياق 62K · Free daily allowance · shared account quota · مجاني"
+  },
+  {
+   "id": "mytho-max-l2-13b",
+   "name": "MythoMax L2 13B",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 4000,
+   "contextLabel": "4K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Medium",
+   "intelligenceRank": 100,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 4K · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "allam-2-7b",
+   "name": "ALLaM 2 7B",
+   "providers": [
+    "groq"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 4096,
+   "contextLabel": "4K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "~15M",
+   "sizeLabel": "Small",
+   "intelligenceRank": 101,
+   "speedRank": 2,
+   "desc": "groq · سياق 4K · ~15M · مجاني"
+  },
+  {
+   "id": "voxtral-small-latest",
+   "name": "Voxtral Small",
+   "providers": [
+    "mistral"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 32768,
+   "contextLabel": "33K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "Free plan · $10/month shared API credits",
+   "sizeLabel": "Small",
+   "intelligenceRank": 101,
+   "speedRank": 7,
+   "desc": "mistral · سياق 33K · يدعم الأدوات · Free plan · $10/month shared API credits · مجاني"
+  },
+  {
+   "id": "voxtral-small-2507",
+   "name": "Voxtral Small 2507",
+   "providers": [
+    "mistral"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 32768,
+   "contextLabel": "33K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "Free plan · $10/month shared API credits",
+   "sizeLabel": "Small",
+   "intelligenceRank": 101,
+   "speedRank": 7,
+   "desc": "mistral · سياق 33K · يدعم الأدوات · Free plan · $10/month shared API credits · مجاني"
+  },
+  {
+   "id": "voxtral-small-2507",
+   "name": "voxtral-small-2507",
+   "providers": [
+    "airforce"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 32768,
+   "contextLabel": "33K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 1,000 req/day · 1 req/min",
+   "sizeLabel": "Small",
+   "intelligenceRank": 101,
+   "speedRank": 7,
+   "desc": "airforce · سياق 33K · free · 1,000 req/day · 1 req/min · مجاني"
+  },
+  {
+   "id": "voxtral-small-latest",
+   "name": "voxtral-small-latest",
+   "providers": [
+    "airforce"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 32768,
+   "contextLabel": "33K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 1,000 req/day · 1 req/min",
+   "sizeLabel": "Small",
+   "intelligenceRank": 101,
+   "speedRank": 7,
+   "desc": "airforce · سياق 33K · free · 1,000 req/day · 1 req/min · مجاني"
+  },
+  {
+   "id": "@cf/meta-llama/llama-2-7b-chat-hf-lora",
+   "name": "Llama 2 7B Chat LoRA",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "~10-20M",
+   "sizeLabel": "Small",
+   "intelligenceRank": 101,
+   "speedRank": 9,
+   "desc": "cloudflare · سياق 8K · ~10-20M · مجاني"
+  },
+  {
+   "id": "@cf/mistral/mistral-7b-instruct-v0.2-lora",
+   "name": "Mistral 7B Instruct v0.2 LoRA",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 32768,
+   "contextLabel": "33K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "~10-20M",
+   "sizeLabel": "Small",
+   "intelligenceRank": 101,
+   "speedRank": 9,
+   "desc": "cloudflare · سياق 33K · ~10-20M · مجاني"
+  },
+  {
+   "id": "koboldcpp/[ctx:65536] Magidonia-24B-heretic-",
+   "name": "[ctx:65536] Magidonia-24B-heretic-",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 101,
+   "speedRank": 10,
+   "desc": "aihorde · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "aphrodite/TheDrummer/Behemoth-X-123B-v2.1",
+   "name": "Behemoth-X-123B-v2 1",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 101,
+   "speedRank": 10,
+   "desc": "aihorde · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "gemma-2-9b-it",
+   "name": "Gemma 2 9B",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8000,
+   "contextLabel": "8K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Small",
+   "intelligenceRank": 101,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 8K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "nvidia/riva-translate-4b-instruct-v2",
+   "name": "Riva Translate 4B Instruct v2",
+   "providers": [
+    "nvidia"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 32768,
+   "contextLabel": "33K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 40 RPM",
+   "sizeLabel": "Small",
+   "intelligenceRank": 101,
+   "speedRank": 10,
+   "desc": "nvidia · سياق 33K · free · 40 RPM · مجاني"
+  },
+  {
+   "id": "koboldcpp/TheDrummer_Behemoth-128B-v3-Q4_K_M",
+   "name": "TheDrummer Behemoth-128B-v3-Q4 K M",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 101,
+   "speedRank": 10,
+   "desc": "aihorde · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "command-r-plus-08-2024",
+   "name": "Command R+",
+   "providers": [
+    "cohere"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "~1-2M",
+   "sizeLabel": "Small",
+   "intelligenceRank": 101,
+   "speedRank": 11,
+   "desc": "cohere · سياق 131K · يدعم الأدوات · ~1-2M · مجاني"
+  },
+  {
+   "id": "cloudflare/@cf/ibm-granite/granite-4.0-h-micro",
+   "name": "Granite 4.0 H Micro",
+   "providers": [
+    "cloudflare",
+    "dreamprompting"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 500K tokens/day · 5,000 req/day",
+   "sizeLabel": "Small",
+   "intelligenceRank": 101,
+   "speedRank": 11,
+   "desc": "cloudflare، dreamprompting · سياق 131K · يدعم الأدوات · free · 500K tokens/day · 5,000 req/day · مجاني"
+  },
+  {
+   "id": "command-r7b-12-2024",
+   "name": "Command R7B",
+   "providers": [
+    "cohere"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "~1-2M",
+   "sizeLabel": "Small",
+   "intelligenceRank": 103,
+   "speedRank": 6,
+   "desc": "cohere · سياق 131K · يدعم الأدوات · ~1-2M · مجاني"
+  },
+  {
+   "id": "command-r7b-arabic-02-2025",
+   "name": "Command R7B Arabic",
+   "providers": [
+    "cohere"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 128000,
+   "contextLabel": "128K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "1,000 calls/month · evaluation only",
+   "sizeLabel": "Small",
+   "intelligenceRank": 103,
+   "speedRank": 6,
+   "desc": "cohere · سياق 128K · يدعم الأدوات · 1,000 calls/month · evaluation only · مجاني"
+  },
+  {
+   "id": "@cf/meta/llama-guard-3-8b",
+   "name": "Llama Guard 3 8B",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "~10-20M",
+   "sizeLabel": "Small",
+   "intelligenceRank": 103,
+   "speedRank": 8,
+   "desc": "cloudflare · سياق 131K · ~10-20M · مجاني"
+  },
+  {
+   "id": "nvidia/llama-3.1-nemoguard-8b-content-safety",
+   "name": "Llama 3.1 NemoGuard 8B Content Safety",
+   "providers": [
+    "nvidia"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 40 RPM",
+   "sizeLabel": "Small",
+   "intelligenceRank": 103,
+   "speedRank": 9,
+   "desc": "nvidia · سياق 131K · free · 40 RPM · مجاني"
+  },
+  {
+   "id": "nvidia/llama-3.1-nemoguard-8b-topic-control",
+   "name": "Llama 3.1 NemoGuard 8B Topic Control",
+   "providers": [
+    "nvidia"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 40 RPM",
+   "sizeLabel": "Small",
+   "intelligenceRank": 103,
+   "speedRank": 9,
+   "desc": "nvidia · سياق 131K · free · 40 RPM · مجاني"
+  },
+  {
+   "id": "nvidia/llama-3.1-nemotron-safety-guard-8b-v3",
+   "name": "Llama 3.1 Nemotron Safety Guard 8B v3",
+   "providers": [
+    "nvidia"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 40 RPM",
+   "sizeLabel": "Small",
+   "intelligenceRank": 103,
+   "speedRank": 9,
+   "desc": "nvidia · سياق 131K · free · 40 RPM · مجاني"
+  },
+  {
+   "id": "nvidia/nemotron-3.5-content-safety",
+   "name": "Nemotron 3.5 Content Safety",
+   "providers": [
+    "nvidia",
+    "electronhub"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 40 RPM",
+   "sizeLabel": "Small",
+   "intelligenceRank": 103,
+   "speedRank": 9,
+   "desc": "nvidia، electronhub · سياق 131K · free · 40 RPM · مجاني"
+  },
+  {
+   "id": "c4ai-aya-expanse-32b",
+   "name": "Aya Expanse 32B",
+   "providers": [
+    "cohere"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "~1-2M",
+   "sizeLabel": "Small",
+   "intelligenceRank": 103,
+   "speedRank": 10,
+   "desc": "cohere · سياق 131K · ~1-2M · مجاني"
+  },
+  {
+   "id": "c4ai-aya-vision-32b",
+   "name": "Aya Vision 32B",
+   "providers": [
+    "cohere"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 16384,
+   "contextLabel": "16K",
+   "tools": false,
+   "vision": true,
+   "price": "$0",
+   "budget": "~1-2M",
+   "sizeLabel": "Small",
+   "intelligenceRank": 103,
+   "speedRank": 10,
+   "desc": "cohere · سياق 16K · رؤية · ~1-2M · مجاني"
+  },
+  {
+   "id": "command-r-08-2024",
+   "name": "Command R (08-2024)",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 128000,
+   "contextLabel": "128K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared recurring credit",
+   "sizeLabel": "Small",
+   "intelligenceRank": 103,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 128K · يدعم الأدوات · $0.25/week shared recurring credit · مجاني"
+  },
+  {
+   "id": "nvidia/nemotron-parse-2.0",
+   "name": "Nemotron Parse 2.0",
+   "providers": [
+    "nvidia"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · 40 RPM",
+   "sizeLabel": "Small",
+   "intelligenceRank": 103,
+   "speedRank": 10,
+   "desc": "nvidia · رؤية · free · 40 RPM · مجاني"
+  },
+  {
+   "id": "command-r-08-2024",
+   "name": "Command R",
+   "providers": [
+    "cohere"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 131072,
+   "contextLabel": "131K",
+   "tools": true,
+   "vision": false,
+   "price": "$0",
+   "budget": "~1-2M",
+   "sizeLabel": "Small",
+   "intelligenceRank": 103,
+   "speedRank": 11,
+   "desc": "cohere · سياق 131K · يدعم الأدوات · ~1-2M · مجاني"
+  },
+  {
+   "id": "aphrodite/TheDrummer/Cydonia-24B-v4.3",
+   "name": "Cydonia 24B v4.3",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 2,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 103,
+   "speedRank": 205,
+   "desc": "aihorde · سياق 8K · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "aphrodite/TheDrummer/Skyfall-31B-v4.2",
+   "name": "Skyfall 31B v4.2",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 4096,
+   "contextLabel": "4K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 103,
+   "speedRank": 206,
+   "desc": "aihorde · سياق 4K · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "meta-llama/llama-prompt-guard-2-22m",
+   "name": "Llama Prompt Guard 2 22M",
+   "providers": [
+    "groq"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 512,
+   "contextLabel": "512",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 14.4K rpd",
+   "sizeLabel": "Small",
+   "intelligenceRank": 105,
+   "speedRank": 1,
+   "desc": "groq · سياق 512 · free · 14.4K rpd · مجاني"
+  },
+  {
+   "id": "meta-llama/llama-prompt-guard-2-86m",
+   "name": "Llama Prompt Guard 2 86M",
+   "providers": [
+    "groq"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 512,
+   "contextLabel": "512",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 14.4K rpd",
+   "sizeLabel": "Small",
+   "intelligenceRank": 105,
+   "speedRank": 1,
+   "desc": "groq · سياق 512 · free · 14.4K rpd · مجاني"
+  },
+  {
+   "id": "@cf/llava-hf/llava-1.5-7b-hf",
+   "name": "LLaVA 1.5 7B",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 4096,
+   "contextLabel": "4K",
+   "tools": false,
+   "vision": true,
+   "price": "$0",
+   "budget": "free · shared 10k neurons/day",
+   "sizeLabel": "Small",
+   "intelligenceRank": 105,
+   "speedRank": 7,
+   "desc": "cloudflare · سياق 4K · رؤية · free · shared 10k neurons/day · مجاني"
+  },
+  {
+   "id": "@cf/google/gemma-7b-it-lora",
+   "name": "Gemma 7B IT LoRA",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "~10-20M",
+   "sizeLabel": "Small",
+   "intelligenceRank": 105,
+   "speedRank": 8,
+   "desc": "cloudflare · سياق 8K · ~10-20M · مجاني"
+  },
+  {
+   "id": "koboldcpp/ReadyArt/Forgotten-Safeword-22B",
+   "name": "Forgotten-Safeword-22B",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 105,
+   "speedRank": 10,
+   "desc": "aihorde · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "@cf/google/gemma-2b-it-lora",
+   "name": "Gemma 2B IT LoRA",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "~10-20M",
+   "sizeLabel": "Small",
+   "intelligenceRank": 105,
+   "speedRank": 10,
+   "desc": "cloudflare · سياق 8K · ~10-20M · مجاني"
+  },
+  {
+   "id": "aphrodite/SicariusSicariiStuff/Impish_Bloodmoon_12B",
+   "name": "Impish Bloodmoon 12B",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 105,
+   "speedRank": 10,
+   "desc": "aihorde · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "l3-lunaris-8b",
+   "name": "L3 8B Lunaris v1",
+   "providers": [
+    "electronhub"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8000,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "$0.25/week shared free credits",
+   "sizeLabel": "Small",
+   "intelligenceRank": 105,
+   "speedRank": 10,
+   "desc": "electronhub · سياق 8K · $0.25/week shared free credits · مجاني"
+  },
+  {
+   "id": "koboldcpp/L3-8B-Stheno-v3.2-Q5_K_M",
+   "name": "L3-8B-Stheno-v3 2-Q5 K M",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 105,
+   "speedRank": 10,
+   "desc": "aihorde · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "koboldcpp/MN-Violet-Lotus-12B.Q8_0",
+   "name": "MN-Violet-Lotus-12B Q8 0",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 105,
+   "speedRank": 10,
+   "desc": "aihorde · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "koboldcpp/Qwen2.5-Coder-3B-Instruct",
+   "name": "Qwen2.5 Coder 3B Instruct",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Ongoing volunteer queue; availability varies",
+   "sizeLabel": "3B",
+   "intelligenceRank": 105,
+   "speedRank": 10,
+   "desc": "aihorde · Ongoing volunteer queue; availability varies · مجاني"
+  },
+  {
+   "id": "koboldcpp/Angelic_Eclipse-12B",
+   "name": "Angelic Eclipse 12B",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 4096,
+   "contextLabel": "4K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 105,
+   "speedRank": 206,
+   "desc": "aihorde · سياق 4K · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "koboldcpp/mini-magnum-12b-v1.1",
+   "name": "Mini Magnum 12B v1.1",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 4096,
+   "contextLabel": "4K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 105,
+   "speedRank": 206,
+   "desc": "aihorde · سياق 4K · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "koboldcpp/lunahr/thea-rp-3b-25r",
+   "name": "thea-rp-3b-25r",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "Small",
+   "intelligenceRank": 106,
+   "speedRank": 10,
+   "desc": "aihorde · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "aisingapore/SEA-Guard",
+   "name": "SEA-Guard",
+   "providers": [
+    "sealion"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 8192,
+   "contextLabel": "8K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "free · 10 RPM",
+   "sizeLabel": "Safety",
+   "intelligenceRank": 200,
+   "speedRank": 6,
+   "desc": "sealion · سياق 8K · free · 10 RPM · مجاني"
+  },
+  {
+   "id": "koboldcpp/mradermacher/Cerebras-GPT-111M-instruction-GGUF",
+   "name": "Cerebras GPT 111M Instruct",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 4096,
+   "contextLabel": "4K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "111M",
+   "intelligenceRank": 202,
+   "speedRank": 206,
+   "desc": "aihorde · سياق 4K · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "@cf/black-forest-labs/flux-1-schnell",
+   "name": "FLUX.1 [schnell]",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "",
+   "sizeLabel": "12B",
+   "intelligenceRank": 203,
+   "speedRank": 203,
+   "desc": "cloudflare · مجاني"
+  },
+  {
+   "id": "koboldcpp/mradermacher/pythia-70m-deduped.f16.gguf",
+   "name": "Pythia 70M Deduped",
+   "providers": [
+    "aihorde"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 4096,
+   "contextLabel": "4K",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "Kudos queue (no token cap)",
+   "sizeLabel": "70M",
+   "intelligenceRank": 203,
+   "speedRank": 206,
+   "desc": "aihorde · سياق 4K · Kudos queue (no token cap) · مجاني"
+  },
+  {
+   "id": "@cf/stabilityai/stable-diffusion-xl-base-1.0",
+   "name": "Stable Diffusion XL",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "",
+   "sizeLabel": "SDXL",
+   "intelligenceRank": 204,
+   "speedRank": 204,
+   "desc": "cloudflare · مجاني"
+  },
+  {
+   "id": "@cf/black-forest-labs/flux-2-klein-9b",
+   "name": "FLUX.2 [klein] 9B",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "",
+   "sizeLabel": "9B",
+   "intelligenceRank": 205,
+   "speedRank": 205,
+   "desc": "cloudflare · مجاني"
+  },
+  {
+   "id": "@cf/black-forest-labs/flux-2-klein-4b",
+   "name": "FLUX.2 [klein] 4B",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "",
+   "sizeLabel": "4B",
+   "intelligenceRank": 206,
+   "speedRank": 206,
+   "desc": "cloudflare · مجاني"
+  },
+  {
+   "id": "@cf/bytedance/stable-diffusion-xl-lightning",
+   "name": "Stable Diffusion XL Lightning",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "",
+   "sizeLabel": "SDXL",
+   "intelligenceRank": 207,
+   "speedRank": 207,
+   "desc": "cloudflare · مجاني"
+  },
+  {
+   "id": "@cf/lykon/dreamshaper-8-lcm",
+   "name": "DreamShaper 8 LCM",
+   "providers": [
+    "cloudflare",
+    "pollinations"
+   ],
+   "providersCount": 2,
+   "endpoints": 2,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "",
+   "sizeLabel": "SDXL",
+   "intelligenceRank": 208,
+   "speedRank": 208,
+   "desc": "cloudflare، pollinations · مجاني"
+  },
+  {
+   "id": "@cf/black-forest-labs/flux-2-dev",
+   "name": "FLUX.2 Dev",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "",
+   "sizeLabel": "Image",
+   "intelligenceRank": 209,
+   "speedRank": 209,
+   "desc": "cloudflare · مجاني"
+  },
+  {
+   "id": "@cf/leonardo/lucid-origin",
+   "name": "Lucid Origin",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "",
+   "sizeLabel": "Image",
+   "intelligenceRank": 210,
+   "speedRank": 210,
+   "desc": "cloudflare · مجاني"
+  },
+  {
+   "id": "@cf/myshell-ai/melotts",
+   "name": "MeloTTS",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "",
+   "sizeLabel": "Small",
+   "intelligenceRank": 211,
+   "speedRank": 211,
+   "desc": "cloudflare · مجاني"
+  },
+  {
+   "id": "@cf/leonardo/phoenix-1.0",
+   "name": "Phoenix 1.0",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "",
+   "sizeLabel": "Image",
+   "intelligenceRank": 211,
+   "speedRank": 211,
+   "desc": "cloudflare · مجاني"
+  },
+  {
+   "id": "@cf/deepgram/aura-1",
+   "name": "Deepgram Aura 1",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "",
+   "sizeLabel": "TTS",
+   "intelligenceRank": 212,
+   "speedRank": 212,
+   "desc": "cloudflare · مجاني"
+  },
+  {
+   "id": "@cf/deepgram/aura-2-en",
+   "name": "Deepgram Aura 2 English",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "",
+   "sizeLabel": "TTS",
+   "intelligenceRank": 212,
+   "speedRank": 212,
+   "desc": "cloudflare · مجاني"
+  },
+  {
+   "id": "@cf/deepgram/aura-2-es",
+   "name": "Deepgram Aura 2 Spanish",
+   "providers": [
+    "cloudflare"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "",
+   "sizeLabel": "TTS",
+   "intelligenceRank": 212,
+   "speedRank": 212,
+   "desc": "cloudflare · مجاني"
+  },
+  {
+   "id": "gemini-3.1-flash-tts-preview",
+   "name": "Gemini 3.1 Flash TTS Preview",
+   "providers": [
+    "google"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "",
+   "sizeLabel": "Flash",
+   "intelligenceRank": 213,
+   "speedRank": 213,
+   "desc": "google · مجاني"
+  },
+  {
+   "id": "agnes-image-2.0-flash",
+   "name": "Agnes Image 2.0 Flash",
+   "providers": [
+    "agnes"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "",
+   "sizeLabel": "Image",
+   "intelligenceRank": 214,
+   "speedRank": 214,
+   "desc": "agnes · مجاني"
+  },
+  {
+   "id": "gemini-2.5-flash-preview-tts",
+   "name": "Gemini 2.5 Flash TTS",
+   "providers": [
+    "google"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "",
+   "sizeLabel": "Flash",
+   "intelligenceRank": 214,
+   "speedRank": 214,
+   "desc": "google · مجاني"
+  },
+  {
+   "id": "agnes-image-2.1-flash",
+   "name": "Agnes Image 2.1 Flash",
+   "providers": [
+    "agnes"
+   ],
+   "providersCount": 1,
+   "endpoints": 1,
+   "context": 0,
+   "contextLabel": "—",
+   "tools": false,
+   "vision": false,
+   "price": "$0",
+   "budget": "",
+   "sizeLabel": "Image",
+   "intelligenceRank": 215,
+   "speedRank": 215,
+   "desc": "agnes · مجاني"
+  }
+ ]
+}
