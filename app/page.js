@@ -9,6 +9,8 @@ import { detectIntent, ROUTE_LABELS } from '@/lib/intent';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { t, LANGS, isRTL } from '@/lib/i18n';
 import { BUILTIN_SKILLS } from '@/lib/skills';
+import { INTEGRATIONS, INTEGRATION_TEST_ACTION, integrationById } from '@/lib/integrations';
+import { JOB_TYPES, jobTypeById, loadJobs, saveJobs, jobStatusLabel } from '@/lib/jobs';
 
 const PLANS = {
   free: { name: 'مجانية', price: '0$', limit: 500000, images: 10, videos: 2, compares: 20, deeps: 10, usdt: PLAN_USDT.free.price, features: PLAN_FEATURES.free },
@@ -265,9 +267,23 @@ export default function Home() {
   const [customSkills, setCustomSkills] = useState([]);
   const [newSkillName, setNewSkillName] = useState('');
   const [newSkillInstr, setNewSkillInstr] = useState('');
-  const [conn, setConn] = useState({ github: '', vercel: '', render: '' });
+  const [conn, setConn] = useState({ github: '', vercel: '', render: '', cloudflare: '', facebook: '', gmail: '' });
   const [connStatus, setConnStatus] = useState({});
   const [connMsg, setConnMsg] = useState('');
+  // v2.1: خلفية الصورة الشخصية + الوكيل الذكي + مهام Live الخلفية
+  const [portraitOn, setPortraitOn] = useState(true);
+  const [agentOn, setAgentOn] = useState(false);
+  const [agentCfg, setAgentCfg] = useState({ instructions: '', tools: { chat: true, image: true, video: true, web: true, integrations: true }, memory: [], history: [] });
+  const [agentRunning, setAgentRunning] = useState(false);
+  const [agentTaskInput, setAgentTaskInput] = useState('');
+  const [agentMsg, setAgentMsg] = useState('');
+  const [jobs, setJobs] = useState([]);
+  const [jobType, setJobType] = useState('research');
+  const [jobTitle, setJobTitle] = useState('');
+  const [jobPrompt, setJobPrompt] = useState('');
+  const [jobBusy, setJobBusy] = useState(false);
+  const [jobMsg, setJobMsg] = useState('');
+  const [newMemory, setNewMemory] = useState('');
   const fileRef = useRef(null);
   const fileImageOnlyRef = useRef(null);
   const chatRef = useRef(null);
@@ -324,7 +340,11 @@ export default function Home() {
       setStarsOn(localStorage.getItem('omni_stars') !== '0');
       try { const a = JSON.parse(localStorage.getItem('omni_skills_active') || '[]'); if (Array.isArray(a)) setActiveSkills(a); } catch {}
       try { const c = JSON.parse(localStorage.getItem('omni_custom_skills') || '[]'); if (Array.isArray(c)) setCustomSkills(c); } catch {}
-      try { const cn = JSON.parse(localStorage.getItem('omni_connections') || '{}'); if (cn && typeof cn === 'object') setConn({ github: cn.github || '', vercel: cn.vercel || '', render: cn.render || '' }); } catch {}
+      try { const cn = JSON.parse(localStorage.getItem('omni_connections') || '{}'); if (cn && typeof cn === 'object') setConn({ github: cn.github || '', vercel: cn.vercel || '', render: cn.render || '', cloudflare: cn.cloudflare || '', facebook: cn.facebook || '', gmail: cn.gmail || '' }); } catch {}
+      // v2.1: إعدادات الوكيل + مهام Live + خلفية الصورة
+      try { const ac = JSON.parse(localStorage.getItem('omni_agent_cfg') || 'null'); if (ac && typeof ac === 'object') setAgentCfg({ instructions: ac.instructions || '', tools: { chat: true, image: true, video: true, web: true, integrations: true, ...(ac.tools || {}) }, memory: Array.isArray(ac.memory) ? ac.memory : [], history: Array.isArray(ac.history) ? ac.history.slice(0, 10) : [] }); } catch {}
+      try { setJobs(loadJobs()); } catch {}
+      try { setPortraitOn(localStorage.getItem('omni_portrait') !== '0'); } catch {}
       // وضع المقارنة: يُحمّل بعد المفاتيح لأنه يعتمد عليها
       const cmpEligible = (pid) => {
         if (pid === 'ollama' || pid === 'custom') return false;
@@ -354,6 +374,16 @@ export default function Home() {
   useEffect(() => { try { localStorage.setItem('omni_skills_active', JSON.stringify(activeSkills)); } catch {} }, [activeSkills]);
   useEffect(() => { try { localStorage.setItem('omni_custom_skills', JSON.stringify(customSkills)); } catch {} }, [customSkills]);
   useEffect(() => { try { localStorage.setItem('omni_connections', JSON.stringify(conn)); } catch {} }, [conn]);
+  useEffect(() => { try { localStorage.setItem('omni_agent_cfg', JSON.stringify(agentCfg)); } catch {} }, [agentCfg]);
+  useEffect(() => { saveJobs(jobs); }, [jobs]);
+  useEffect(() => { try { localStorage.setItem('omni_portrait', portraitOn ? '1' : '0'); } catch {} }, [portraitOn]);
+  // v2.1: تحديث تلقائي لحالة مهام Live كل 20 ثانية أثناء فتح لوحة Live.
+  useEffect(() => {
+    if (drawer !== 'live') return;
+    const t = setInterval(() => { refreshJobs(); }, 20000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawer]);
   useEffect(() => { setVisibleCount(PAGE_SIZE); }, [currentId]); // جلسة جديدة = أول 50 رسالة
   // التمرير للأسفل (v2.0): تلقائي فقط إن كان المستخدم أصلاً في الأسفل؛
   // وإن وصلت رسائل جديدة وهو في الأعلى، تظهر شارة على زر ↓ بدل القفز به.
@@ -616,19 +646,26 @@ export default function Home() {
     if (/vercel|فيرسل|فيرسيل/i.test(tx) && /مشروع|مشاريع|project/i.test(tx)) return 'vercel';
     if (/github|جيت\s?هب|غيت\s?هب|مستودع|مستودعات|repo/i.test(tx)) return 'github';
     if (/render|ريندر/i.test(tx) && /خدم|service/i.test(tx)) return 'render';
+    if (/فيسبوك|facebook|صفح/i.test(tx)) return 'facebook';
+    if (/cloudflare|كلاودفلير|نطاق|zone/i.test(tx)) return 'cloudflare';
+    if (/gmail|جيميل|بريد|رسائل/i.test(tx)) return 'gmail';
     return null;
   }
   async function connectionContextFor(text) {
     const svc = connectionIntent(text);
     if (!svc || !conn[svc]) return '';
     try {
-      const action = svc === 'github' ? 'listRepos' : svc === 'vercel' ? 'listProjects' : 'listServices';
+      const action = svc === 'github' ? 'listRepos' : svc === 'vercel' ? 'listProjects' : svc === 'render' ? 'listServices' : svc === 'cloudflare' ? 'listZones' : svc === 'facebook' ? 'listPages' : 'listMessages';
       const r = await fetch('/api/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ service: svc, action, token: conn[svc] }), signal: AbortSignal.timeout(12000) });
       const d = await r.json();
       if (!r.ok) return '';
-      const items = d.repos || d.projects || d.services || [];
+      const items = d.repos || d.projects || d.services || d.zones || d.pages || d.messages || [];
       if (!items.length) return '\n\n[بيانات حقيقية من ' + svc + ': لا توجد عناصر بعد.]';
-      const lines = items.slice(0, 20).map((x) => '- ' + (x.name || x.id) + (x.url ? ' (' + x.url + ')' : '')).join('\n');
+      const lines = items.slice(0, 20).map((x) => {
+        if (svc === 'gmail') return '- ' + (x.subject || '(بلا موضوع)') + ' — من ' + (x.from || '?') + (x.date ? ' (' + x.date + ')' : '');
+        if (svc === 'cloudflare') return '- ' + (x.name || x.id) + (x.status ? ' (' + x.status + ')' : '');
+        return '- ' + (x.name || x.id) + (x.url ? ' (' + x.url + ')' : '');
+      }).join('\n');
       return '\n\n[بيانات حقيقية من ' + svc + ' — أجب بناءً عليها فقط:\n' + lines + ']';
     } catch { return ''; }
   }
@@ -637,12 +674,191 @@ export default function Home() {
     if (!token) { setConnStatus((p) => ({ ...p, [svc]: 'missing' })); setConnMsg('ألصق التوكن أولاً ثم اضغط «اختبار الاتصال».'); return; }
     setConnStatus((p) => ({ ...p, [svc]: 'testing' }));
     try {
-      const action = svc === 'github' ? 'listRepos' : svc === 'vercel' ? 'listProjects' : 'listServices';
+      const action = INTEGRATION_TEST_ACTION[svc] || 'test';
       const r = await fetch('/api/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ service: svc, action, token }) });
       const d = await r.json();
       setConnStatus((p) => ({ ...p, [svc]: r.ok ? 'ok' : 'fail' }));
       setConnMsg(r.ok ? svc + ' ✓ متصل — ' + (d.count ?? 0) + ' عنصر' : (d.error || 'فشل الاتصال'));
     } catch (e) { setConnStatus((p) => ({ ...p, [svc]: 'fail' })); setConnMsg('تعذّر الاتصال: ' + String(e.message || e)); }
+  }
+
+  // ---------- الوكيل الذكي (v2.1) ----------
+  // يعمل بنماذج موجودة (الراوتر / Groq / Gemini) — ليس نموذجاً مدرّباً من الصفر.
+  // يخطط المهمة، ينفّذ خطواتها بأدوات الموقع، ويعرض سجلاً حياً لكل خطوة.
+  function agentSystemPrompt() {
+    const mem = (agentCfg.memory || []).filter(Boolean);
+    return 'You are CHIBANI AI Agent — a careful autonomous agent. ' +
+      (agentCfg.instructions ? 'User-defined behaviour:\n' + agentCfg.instructions.slice(0, 1500) + '\n' : '') +
+      (mem.length ? 'Lessons learned from past tasks (follow them):\n- ' + mem.slice(0, 12).join('\n- ') + '\n' : '') +
+      'Work step by step, verify results, and say plainly when something cannot be done.';
+  }
+  // طلب محادثة واحد غير متدفق للوكيل (نفس مسار المحادثة العادي).
+  async function chatOnce(messages, deep = false) {
+    const res = await fetch('/api/chat', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages,
+        providerId, model: model || undefined,
+        apiKeys: providerId === 'freellmapi' ? { ...keys, freellmapi: flKeyEntries() } : keys,
+        baseURL: flUrl || FL_DEFAULT_URL, deepThinking: deep, lang,
+        skills: activeSkillInstructions()
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'فشل الطلب.');
+    return { content: data.content || '', tokens: data.usage?.total_tokens || estimateTokens(data.content || '') };
+  }
+  function parseAgentPlan(text) {
+    const steps = [];
+    for (const line of String(text || '').split('\n')) {
+      const m = line.match(/^\s*\d+[.)]\s*(?:\[(\w+)\]\s*)?(.+)$/);
+      if (m && m[2] && m[2].trim().length > 2) {
+        const tool = (m[1] || 'chat').toLowerCase();
+        steps.push({ label: m[2].trim().slice(0, 200), tool: ['chat', 'image', 'video', 'web', 'github', 'vercel', 'render', 'cloudflare', 'facebook', 'gmail'].includes(tool) ? tool : 'chat', status: 'pending', detail: '' });
+      }
+      if (steps.length >= 6) break;
+    }
+    return steps;
+  }
+  function agentAllowedTools() {
+    const t = agentCfg.tools || {};
+    const out = [];
+    if (t.chat) out.push('chat');
+    if (t.image) out.push('image');
+    if (t.video) out.push('video');
+    if (t.web) out.push('web');
+    if (t.integrations) out.push('github', 'vercel', 'render', 'cloudflare', 'facebook', 'gmail');
+    return out.length ? out : ['chat'];
+  }
+  async function runAgentTask(taskText) {
+    const task = (taskText ?? input).trim();
+    if (!task || agentRunning) return;
+    if (daily.tokens >= planInfo.limit) { setError(tt('dailyLimitReached')); setDrawer('pricing'); return; }
+    if (!current) return;
+    setError('');
+    const userMsg = { role: 'user', content: task, tokens: estimateTokens(task), route: 'agent' };
+    const agentId = uid();
+    const agentMsgObj = { id: agentId, role: 'assistant', kind: 'agent', task, steps: [], status: 'running', content: '', tokens: 0 };
+    updateSession(current.id, (s) => ({ ...s, title: s.messages.length === 0 ? task.slice(0, 40) : s.title, messages: [...s.messages, userMsg, agentMsgObj], tokens: (s.tokens || 0) + userMsg.tokens }));
+    setInput(''); setAttachments([]); setAgentTaskInput(''); setLoading(true); setAgentRunning(true);
+    const updateAgent = (patch) => updateSession(current.id, (s) => ({ ...s, messages: s.messages.map((m) => (m.id === agentId ? { ...m, ...patch } : m)) }));
+    let totalTokens = userMsg.tokens;
+    const ctxNotes = [];
+    try {
+      const allowed = agentAllowedTools();
+      const sys = agentSystemPrompt();
+      // الخطوة 0: التخطيط
+      const planRes = await chatOnce([
+        { role: 'system', content: sys },
+        { role: 'user', content: 'المهمة: ' + task + '\n\nقسّمها إلى خطوات مرقمة (3-6 خطوات كحد أقصى). الأدوات المتاحة: ' + allowed.join(', ') + '. اكتب كل خطوة في سطر بهذا الشكل: "1. [chat] ...". أداة image لتوليد صورة، video لفيديو، web لجلب صفحة ويب (اكتب الرابط كاملاً في الخطوة)، وأسماء التكاملات (github/vercel/...) لجلب بياناتها. لا خطوات وهمية.' }
+      ]);
+      totalTokens += planRes.tokens;
+      let steps = parseAgentPlan(planRes.content);
+      if (!steps.length) steps = [{ label: 'الإجابة المباشرة عن المهمة', tool: 'chat', status: 'pending', detail: '' }];
+      // إسقاط أدوات غير مسموحة من الوكيل
+      steps = steps.map((s) => ({ ...s, tool: allowed.includes(s.tool) ? s.tool : 'chat' }));
+      updateAgent({ steps: steps.map((s) => ({ ...s })) });
+      // تنفيذ الخطوات بالتسلسل
+      for (let si = 0; si < steps.length; si++) {
+        if (daily.tokens + totalTokens >= planInfo.limit) { steps[si] = { ...steps[si], status: 'failed', detail: 'بلغت حد التوكنات اليومي.' }; updateAgent({ steps: steps.map((s) => ({ ...s })) }); break; }
+        steps[si] = { ...steps[si], status: 'running' };
+        updateAgent({ steps: steps.map((s) => ({ ...s })) });
+        try {
+          const st = steps[si];
+          let out = '';
+          if (st.tool === 'web') {
+            const urlMatch = st.label.match(/https?:\/\/[^\s<>"')\]]+/);
+            let url = urlMatch ? urlMatch[0] : '';
+            if (!url) {
+              const ask = await chatOnce([{ role: 'system', content: sys }, { role: 'user', content: 'لهذه الخطوة من المهمة: "' + st.label + '" (المهمة: ' + task + ') — أعطِ أفضل رابط ويب واحد فقط لقراءته، بلا شرح.' }]);
+              totalTokens += ask.tokens;
+              const u2 = (ask.content.match(/https?:\/\/[^\s<>"')\]]+/) || [])[0];
+              if (u2) url = u2;
+            }
+            if (!url) throw new Error('لم يُعثر على رابط لهذه الخطوة.');
+            const fr = await fetch('/api/fetch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) });
+            const fd = await fr.json();
+            if (!fr.ok) throw new Error(fd.error || 'فشل جلب الصفحة.');
+            out = 'صفحة: ' + (fd.title || url) + '\n' + String(fd.text || '').slice(0, 3000);
+            steps[si] = { ...st, status: 'done', detail: (fd.title || url).slice(0, 120) };
+          } else if (st.tool === 'image') {
+            const ir = await fetch('/api/image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: st.label + ' — ' + task, apiKeys: keys, flKeys, flUrl }) });
+            const id = await ir.json();
+            if (!ir.ok) throw new Error(id.error || 'فشل توليد الصورة.');
+            out = 'صورة مولّدة عبر ' + (id.via || 'المسار المجاني');
+            steps[si] = { ...st, status: 'done', detail: out, imageUrl: id.url && String(id.url).startsWith('http') ? id.url : undefined };
+          } else if (st.tool === 'video') {
+            const vr = await fetch('/api/video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: st.label + ' — ' + task, apiKeys: keys }) });
+            const vd = await vr.json();
+            if (!vr.ok) throw new Error(vd.error || 'فشل توليد الفيديو.');
+            out = vd.url ? 'فيديو مولّد: ' + vd.url : 'فيديو قيد التوليد — المهمة ' + String(vd.jobId || '').slice(0, 8);
+            steps[si] = { ...st, status: 'done', detail: out.slice(0, 140), videoUrl: vd.url || undefined };
+          } else if (['github', 'vercel', 'render', 'cloudflare', 'facebook', 'gmail'].includes(st.tool)) {
+            const ctx = await connectionContextFor(st.label + ' ' + task);
+            if (!ctx) throw new Error('التكامل ' + st.tool + ' غير موصول أو لا توجد بيانات — أضف توكنه من «التكاملات».');
+            out = ctx.slice(0, 3000);
+            steps[si] = { ...st, status: 'done', detail: 'بيانات حقيقية من ' + st.tool };
+          } else {
+            const cr = await chatOnce([
+              { role: 'system', content: sys },
+              { role: 'user', content: 'المهمة: ' + task + '\nالخطوة الحالية: ' + st.label + '\nنتائج الخطوات السابقة:\n' + (ctxNotes.join('\n') || 'لا شيء بعد.') + '\n\nنفّذ هذه الخطوة فقط، باختصار ودقة.' }
+            ]);
+            totalTokens += cr.tokens;
+            out = cr.content;
+            steps[si] = { ...st, status: 'done', detail: String(cr.content || '').replace(/\s+/g, ' ').slice(0, 160) };
+          }
+          if (out) ctxNotes.push('- ' + steps[si].label + ':\n' + String(out).slice(0, 2500));
+        } catch (e) {
+          steps[si] = { ...steps[si], status: 'failed', detail: String(e.message || e).slice(0, 140) };
+          ctxNotes.push('- ' + steps[si].label + ': (فشلت — ' + String(e.message || e).slice(0, 120) + ')');
+        }
+        updateAgent({ steps: steps.map((s) => ({ ...s })) });
+      }
+      // الخلاصة النهائية
+      const fin = await chatOnce([
+        { role: 'system', content: sys },
+        { role: 'user', content: 'المهمة: ' + task + '\n\nنتائج الخطوات:\n' + (ctxNotes.join('\n') || 'لا نتائج.') + '\n\nاكتب الإجابة النهائية المنظمة للمستخدم بالعربية، مع ذكر ما فشل إن وُجد.' }
+      ]);
+      totalTokens += fin.tokens;
+      updateAgent({ steps: steps.map((s) => ({ ...s })), status: 'done', content: fin.content, tokens: totalTokens });
+      setDaily((d) => ({ ...d, tokens: d.tokens + totalTokens }));
+      setAgentCfg((p) => ({ ...p, history: [{ task: task.slice(0, 80), status: 'done', at: Date.now() }, ...(p.history || [])].slice(0, 10) }));
+    } catch (e) {
+      updateAgent({ status: 'failed', content: 'تعذّر إكمال المهمة: ' + String(e.message || e).slice(0, 200), tokens: totalTokens });
+      setAgentCfg((p) => ({ ...p, history: [{ task: task.slice(0, 80), status: 'failed', at: Date.now() }, ...(p.history || [])].slice(0, 10) }));
+    } finally {
+      setLoading(false); setAgentRunning(false);
+    }
+  }
+
+  // ---------- مهام Live الخلفية (v2.1) ----------
+  // التشغيل على GitHub Actions (مجاني 2000 دقيقة/شهر) — تستمر حتى لو أغلق المستخدم الإنترنت.
+  async function createJob() {
+    if (!conn.github) { setJobMsg(tt('jobNeedGithub')); setDrawer('connections'); return; }
+    if (!jobPrompt.trim()) { setJobMsg('اكتب وصف المهمة أولاً.'); return; }
+    setJobBusy(true); setJobMsg('');
+    try {
+      const r = await fetch('/api/jobs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', token: conn.github, type: jobType, title: jobTitle.trim() || jobPrompt.trim().slice(0, 60), prompt: jobPrompt.trim() }) });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'فشل الإنشاء.');
+      const rec = { id: d.jobId, type: jobType, title: jobTitle.trim() || jobPrompt.trim().slice(0, 60), prompt: jobPrompt.trim(), status: 'queued', progress: 0, steps: [], createdAt: Date.now() };
+      setJobs((p) => [rec, ...p]);
+      setJobPrompt(''); setJobTitle(''); setJobMsg(tt('jobCreated'));
+    } catch (e) { setJobMsg('✗ ' + String(e.message || e)); }
+    finally { setJobBusy(false); }
+  }
+  async function refreshJobs() {
+    if (!conn.github) return;
+    const actives = jobs.filter((j) => j.status === 'queued' || j.status === 'running');
+    if (!actives.length) return;
+    for (const j of actives) {
+      try {
+        const r = await fetch('/api/jobs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'status', token: conn.github, jobId: j.id }) });
+        const d = await r.json();
+        if (!r.ok) continue;
+        setJobs((p) => p.map((x) => (x.id === j.id ? { ...x, status: d.status, progress: d.progress ?? x.progress, steps: d.steps || x.steps, result: d.result || x.result, error: d.error || null, runUrl: d.run?.url || x.runUrl } : x)));
+      } catch {}
+    }
   }
 
   function updateSession(id, fn) { setSessions((prev) => prev.map((s) => (s.id === id ? fn(s) : s))); }
@@ -1236,6 +1452,8 @@ export default function Home() {
     setPendingTool(null);
     if (tool === 'image') { genImageChat(textOverride); return; }
     if (tool === 'video') { genVideoChat(textOverride); return; }
+    // v2.1: وضع الوكيل — يخطط المهمة وينفّذها خطوة بخطوة بدل الرد المباشر.
+    if (agentOn) { runAgentTask(text); return; }
     const hasImage = attachments.some((a) => a.kind === 'image');
     const intent = detectIntent(text, { hasImageAttachment: hasImage });
     if (intent.type === 'image') { genImageChat(textOverride); return; }
@@ -1526,6 +1744,7 @@ export default function Home() {
     return (
       <div className={'app' + (starsOn ? '' : ' glow-off')}>
         <Starfield enabled={starsOn} />
+        {portraitOn && <div className="portrait-bg" aria-hidden="true" />}
         <div className="login-wall">
           <div className="logo glow-brand" style={{ fontSize: 34 }}>CHIBANI AI</div>
           <p className="login-wall-tag">{tt('tagline')}</p>
@@ -1547,6 +1766,7 @@ export default function Home() {
   return (
     <div className={'app' + (starsOn ? '' : ' glow-off')}>
       <Starfield enabled={starsOn} />
+      {portraitOn && <div className="portrait-bg" aria-hidden="true" />}
       {/* خلفية معتمة للقائمة الجانبية على الهاتف — النقر عليها يغلقها */}
       {sidebarOpen && <div className="backdrop" onClick={() => setSidebarOpen(false)} aria-hidden="true" />}
 
@@ -1596,7 +1816,9 @@ export default function Home() {
             {LANGS.map((l) => <option key={l.code} value={l.code}>{l.native}</option>)}
           </select>
           <button className="btn ghost" onClick={() => { setDrawer('skills'); setSidebarOpen(false); }}>🎯 {tt('skills')}</button>
-          <button className="btn ghost" onClick={() => { setDrawer('connections'); setSidebarOpen(false); }}>🔗 {tt('connections')}</button>
+          <button className="btn ghost" onClick={() => { setDrawer('agent'); setSidebarOpen(false); }}>🤖 {tt('agent')}</button>
+          <button className="btn ghost" onClick={() => { setDrawer('live'); setSidebarOpen(false); }}>🔴 {tt('live')} {jobs.filter((j) => j.status === 'queued' || j.status === 'running').length ? '· ' + jobs.filter((j) => j.status === 'queued' || j.status === 'running').length + ' ⏳' : ''}</button>
+          <button className="btn ghost" onClick={() => { setDrawer('connections'); setSidebarOpen(false); }}>🌐 {tt('integrations')}</button>
           <button className="btn ghost" onClick={() => { setGuideOpen(true); setSidebarOpen(false); }}>🚀 {tt('freellmapiGuide')}</button>
           <button className="btn ghost" onClick={() => { setDrawer('freellmapi'); setSidebarOpen(false); }}>⚙️ {tt('freellmapi')} {flKeys.length ? '✓ ' + flKeys.length : ''}</button>
           <button className="btn ghost" onClick={() => { setDrawer('keys'); setSidebarOpen(false); }}>🔑 {tt('keys')}</button>
@@ -1621,6 +1843,7 @@ export default function Home() {
             <span className="plan-meter-label">{formatTokens(daily.tokens)} / {formatTokens(planInfo.limit)}</span>
             <span className="plan-meter-bar"><i style={{ width: Math.min(100, (daily.tokens / planInfo.limit) * 100) + '%' }} /></span>
           </span>
+          <button className="live-btn" onClick={() => setDrawer('live')} aria-label={tt('live')} title={tt('live')}>🔴 Live{jobs.filter((j) => j.status === 'queued' || j.status === 'running').length ? ' ' + jobs.filter((j) => j.status === 'queued' || j.status === 'running').length : ''}</button>
           <button className="subscribe-btn" onClick={() => setDrawer('pricing')} aria-label={tt('subscribe')}>💎 <span className="subscribe-btn-text">{tt('subscribe')}</span></button>
           <span className="spacer" />
         </header>
@@ -1712,6 +1935,31 @@ export default function Home() {
                               <button onClick={() => copyText(m.imageUrl, 'img' + i)}>{copied === 'img' + i ? '✓ نُسخ الرابط' : 'نسخ رابط الصورة'}</button>
                             </div>
                           </>
+                        ) : m.kind === 'agent' ? (
+                          <div className="agent-card">
+                            <div className="agent-head">
+                              <span>🤖 {tt('agent')}</span>
+                              <span className={'badge ' + (m.status === 'done' ? 'ok' : m.status === 'failed' ? 'fail' : 'running')}>{m.status === 'done' ? tt('jobDone') : m.status === 'failed' ? tt('jobFailed') : tt('jobRunning')}</span>
+                            </div>
+                            <div className="agent-task">«{m.task}»</div>
+                            <div className="agent-steps">
+                              {(m.steps || []).map((s, si) => (
+                                <div key={si} className={'agent-step ' + (s.status || 'pending')}>
+                                  <span className="agent-step-ico">{s.status === 'done' ? '✓' : s.status === 'failed' ? '✗' : s.status === 'running' ? '⏳' : '•'}</span>
+                                  <span className="agent-step-body">
+                                    <b>{s.label}</b>
+                                    {s.detail ? <small>{s.detail}</small> : null}
+                                  </span>
+                                  {s.imageUrl && <img className="gen agent-step-img" src={s.imageUrl} alt={s.label} />}
+                                </div>
+                              ))}
+                            </div>
+                            {m.status === 'running' && <div className="thinking-live">🧠 {tt('agentPlanning')}</div>}
+                            {m.content ? <div className="agent-result">{renderMd(m.content, previewActions)}</div> : null}
+                            <div className="msg-actions">
+                              {m.content && <button onClick={() => copyText(m.content, 'ag' + i)}>{copied === 'ag' + i ? '✓ تم النسخ' : '📋 نسخ'}</button>}
+                            </div>
+                          </div>
                         ) : (
                           <>
                             {(() => {
@@ -1773,6 +2021,8 @@ export default function Home() {
             <button className="model-pill-btn" onClick={() => setSheet('model')} aria-label="اختيار النموذج">{currentModelLabel} <span aria-hidden="true">⌄</span></button>
             {deepThinking && <span className="mini-chip">🧠 {tt('deepThinking')}</span>}
             {pendingTool && <span className="mini-chip">الأداة: {pendingTool === 'image' ? '🖼 توليد صورة' : '🎬 توليد فيديو'} <button onClick={() => setPendingTool(null)} aria-label="إلغاء الأداة">✕</button></span>}
+            <button className={'mini-chip chip-btn' + (agentOn ? ' active' : '')} onClick={() => setAgentOn((v) => !v)} title={tt('agentIntro')}>🤖 {tt('agentMode')}{agentOn ? ' ✓' : ''}</button>
+            {activeSkills.length > 0 && <span className="mini-chip" title={tt('skills')}>🎯 {activeSkills.length} {tt('skills')}</span>}
           </div>
           {/* v2.0: لا شريط نماذج فوق صندوق الكتابة — يبقى زر النموذج المختار فقط في الأعلى،
               وورقة النماذج العمودية (مع بحث ووصف) هي مكان الاختيار. */}
@@ -1882,6 +2132,19 @@ export default function Home() {
                 <span className="tool-text"><b>مقارنة</b><small>نفس السؤال لعدة مزودين دفعة واحدة</small></span>
                 <span className={'switch' + (compareOn ? ' on' : '')}><i /></span>
               </button>
+              <button className="tool-row" onClick={() => { setAgentOn((v) => !v); setSheet(null); }}>
+                <span className="tool-icon">🤖</span>
+                <span className="tool-text"><b>{tt('agentMode')}</b><small>الوكيل يخطط مهمتك وينفّذها خطوة بخطوة بأدوات الموقع — فعّلها ثم اكتب مهمتك وأرسل</small></span>
+                <span className={'switch' + (agentOn ? ' on' : '')}><i /></span>
+              </button>
+              <button className="tool-row" onClick={() => { setSheet(null); setDrawer('skills'); }}>
+                <span className="tool-icon">🎯</span>
+                <span className="tool-text"><b>{tt('skills')}</b><small>اختر مهارة (بحث ويب، تحليل ملف، مراجعة كود…) تُوجّه إجابات النموذج — مفاتيح توجيه، لا سحر</small></span>
+              </button>
+              <button className="tool-row" onClick={() => { setSheet(null); setDrawer('live'); }}>
+                <span className="tool-icon">🔴</span>
+                <span className="tool-text"><b>{tt('live')}</b><small>مشاريع طويلة تعمل في الخلفية على GitHub Actions حتى لو أغلقت الإنترنت</small></span>
+              </button>
             </div>
           </div>
         </>
@@ -1955,7 +2218,7 @@ export default function Home() {
           <div className="backdrop" style={{ display: 'block', zIndex: 65 }} onClick={() => setDrawer(null)} aria-hidden="true" />
           <div className="drawer">
             <div className="drawer-head">
-              <h2>{drawer === 'keys' ? '🔑 ' + tt('keys') : drawer === 'freellmapi' ? '🚀 FreeLLMAPI — الراوتر المستضاف' : drawer === 'image' ? '🖼 ' + tt('imageGen') : drawer === 'video' ? '🎬 ' + tt('videoGen') : drawer === 'stats' ? '📊 ' + tt('stats') : drawer === 'pricing' ? '💎 ' + tt('pricing') : drawer === 'skills' ? '🎯 ' + tt('skills') : drawer === 'connections' ? '🔗 ' + tt('connections') : '⚙️ ' + tt('settings')}</h2>
+              <h2>{drawer === 'keys' ? '🔑 ' + tt('keys') : drawer === 'freellmapi' ? '🚀 FreeLLMAPI — الراوتر المستضاف' : drawer === 'image' ? '🖼 ' + tt('imageGen') : drawer === 'video' ? '🎬 ' + tt('videoGen') : drawer === 'stats' ? '📊 ' + tt('stats') : drawer === 'pricing' ? '💎 ' + tt('pricing') : drawer === 'skills' ? '🎯 ' + tt('skills') : drawer === 'connections' ? '🌐 ' + tt('integrations') : drawer === 'agent' ? '🤖 ' + tt('agent') : drawer === 'live' ? '🔴 ' + tt('live') : '⚙️ ' + tt('settings')}</h2>
               <button className="sidebar-close" style={{ display: 'inline-flex' }} onClick={() => setDrawer(null)} aria-label="إغلاق">✕</button>
             </div>
 
@@ -2204,11 +2467,17 @@ export default function Home() {
             </>)}
 
             {drawer === 'skills' && (<>
-              <p>المهارات المفعّلة تُضاف إلى تعليمات النموذج في كل رسالة — فعّل مهارة أو أكثر ثم أرسل سؤالك.</p>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '10px 0' }}>
+              <p>المهارات المفعّلة تُضاف إلى تعليمات النموذج في كل رسالة — فعّل مهارة أو أكثر ثم أرسل سؤالك. المهارات مفاتيح توجيه للنموذج، ليست برامج سحرية: لا تجلب بيانات جديدة بنفسها، بل تغيّر طريقة إجابة النموذج.</p>
+              <div className="skill-list">
                 {BUILTIN_SKILLS.map((sk) => {
                   const on = activeSkills.includes(sk.id);
-                  return (<button key={sk.id} className={'cmp-chip' + (on ? ' on' : '')} onClick={() => toggleSkill(sk.id)}>{sk.icon} {sk.name}</button>);
+                  return (
+                    <div key={sk.id} className="skill-row" onClick={() => toggleSkill(sk.id)} role="button" tabIndex={0}>
+                      <span className="tool-icon">{sk.icon}</span>
+                      <span className="tool-text"><b>{sk.name}</b><small>{sk.desc}</small></span>
+                      <span className={'switch' + (on ? ' on' : '')}><i /></span>
+                    </div>
+                  );
                 })}
               </div>
               <h3>مهارة مخصصة</h3>
@@ -2229,15 +2498,18 @@ export default function Home() {
             </>)}
 
             {drawer === 'connections' && (<>
-              <p>اربط حساباتك لتسأل عنها في المحادثة — مثال: «اعرض مشاريعي في Vercel» أو «ما مستودعاتي في GitHub؟». التوكنات تُحفظ في متصفحك فقط، ولا تُرسل إلا إلى الخدمة نفسها، ولا تُسجَّل في أي سجل.</p>
-              {[
-                { id: 'github', name: 'GitHub', hint: 'Personal Access Token — من github.com/settings/tokens (صلاحية repo للقراءة)', action: 'listRepos' },
-                { id: 'vercel', name: 'Vercel', hint: 'Token — من vercel.com/account/tokens', action: 'listProjects' },
-                { id: 'render', name: 'Render', hint: 'API Key — من dashboard.render.com/account/api-keys', action: 'listServices' }
-              ].map((svc) => (
-                <div key={svc.id} style={{ marginBottom: 16 }}>
-                  <h3 style={{ marginBottom: 4 }}>{svc.name} {connStatus[svc.id] === 'ok' && <span className="badge">✓ {tt('connected')}</span>}{connStatus[svc.id] === 'fail' && <span className="badge exhausted">{tt('notConnected')}</span>}</h3>
-                  <p style={{ fontSize: 12.5 }}>{svc.hint}</p>
+              <p>{tt('integrationsIntro')}</p>
+              {INTEGRATIONS.map((svc) => (
+                <div key={svc.id} className="hub-card">
+                  <div className="hub-head">
+                    <span className="tool-icon">{svc.icon}</span>
+                    <span className="tool-text"><b>{svc.name}</b><small>{svc.canDo}</small></span>
+                    {connStatus[svc.id] === 'ok' && <span className="badge">✓ {tt('connected')}</span>}
+                    {connStatus[svc.id] === 'fail' && <span className="badge exhausted">{tt('notConnected')}</span>}
+                    {svc.notReady && <span className="badge">قريباً</span>}
+                  </div>
+                  <p className="hub-hint">{svc.hint}</p>
+                  {svc.id === 'gmail' && <div className="note">{tt('gmailScopeNote')}</div>}
                   <div className="field"><input type="password" value={conn[svc.id] || ''} onChange={(e) => setConn((p) => ({ ...p, [svc.id]: e.target.value }))} placeholder="الصق التوكن هنا…" dir="ltr" autoComplete="off" /></div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button className="btn ghost small" onClick={() => testConnection(svc.id)} disabled={connStatus[svc.id] === 'testing'}>{connStatus[svc.id] === 'testing' ? 'جارٍ الاختبار…' : '🔗 ' + tt('testConnection')}</button>
@@ -2246,7 +2518,88 @@ export default function Home() {
                 </div>
               ))}
               {connMsg && <div className="note blue">{connMsg}</div>}
-              <div className="note">ما يستطيع الموقع فعله بكل خدمة: GitHub — عرض مستودعاتك وقراءة ملف؛ Vercel — عرض مشاريعك؛ Render — عرض خدماتك. اسأل في المحادثة وسيُجلب السياق تلقائياً قبل الرد.</div>
+              <div className="note">اسأل في المحادثة وسيُجلب السياق تلقائياً قبل الرد — مثال: «اعرض مشاريعي في Vercel» أو «ما مستودعاتي في GitHub؟» أو «ما صفحاتي على فيسبوك؟».</div>
+            </>)}
+
+            {drawer === 'agent' && (<>
+              <p>{tt('agentIntro')}</p>
+              <div className="note">{tt('agentHonestNote')}</div>
+              <div className="field"><label>{tt('agentStart')}</label>
+                <textarea value={agentTaskInput} onChange={(e) => setAgentTaskInput(e.target.value)} rows={3} placeholder="مثال: ابحث عن أفضل طريقة لتعلم الإنجليزية ولخّصها في 5 نقاط… أو: جهّز لي صورة غلاف لموقعي…" />
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button className="btn" onClick={() => { if (!agentTaskInput.trim()) return; setDrawer(null); runAgentTask(agentTaskInput); }} disabled={agentRunning || !agentTaskInput.trim()}>{agentRunning ? tt('jobRunning') : '🤖 ' + tt('runAgent')}</button>
+                <button className={'btn ghost' + (agentOn ? '' : '')} onClick={() => setAgentOn((v) => !v)}>{agentOn ? 'وضع الوكيل مفعّل ✓ — اضغط لإيقافه' : 'تفعيل وضع الوكيل في صندوق الكتابة'}</button>
+              </div>
+              {agentMsg && <div className="note blue">{agentMsg}</div>}
+              <h3>{tt('agentInstructions')}</h3>
+              <div className="field"><textarea value={agentCfg.instructions} onChange={(e) => setAgentCfg((p) => ({ ...p, instructions: e.target.value }))} rows={3} placeholder="مثال: أجب دائماً بالعربية الفصحى البسيطة، واذكر مصادرك، ولا تخترع أرقاماً…" /></div>
+              <h3>{tt('agentTools')}</h3>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {[
+                  { id: 'chat', label: '💬 محادثة' }, { id: 'image', label: '🖼 صور' }, { id: 'video', label: '🎬 فيديو' }, { id: 'web', label: '🌐 جلب ويب' }, { id: 'integrations', label: '🔗 التكاملات' }
+                ].map((t) => (
+                  <button key={t.id} className={'cmp-chip' + (agentCfg.tools[t.id] ? ' on' : '')} onClick={() => setAgentCfg((p) => ({ ...p, tools: { ...p.tools, [t.id]: !p.tools[t.id] } }))}>{t.label}</button>
+                ))}
+              </div>
+              <h3>{tt('agentMemory')}</h3>
+              <p style={{ fontSize: 12.5 }}>هكذا «تدرّب» وكيلك: أضف دروساً وأمثلة من مهامه السابقة، فيتذكرها ويطبّقها في المهام القادمة. ذاكرته تُحفظ في متصفحك فقط.</p>
+              {(!agentCfg.memory || agentCfg.memory.length === 0) ? <p>{tt('agentNoMemory')}</p> : agentCfg.memory.map((m, mi) => (
+                <div key={mi} className="key-row">
+                  <span style={{ flex: 1 }}>📝 {m}</span>
+                  <button className="btn danger small" onClick={() => setAgentCfg((p) => ({ ...p, memory: p.memory.filter((_, x) => x !== mi) }))}>حذف</button>
+                </div>
+              ))}
+              <div className="field" style={{ display: 'flex', gap: 8 }}>
+                <input style={{ flex: 1 }} value={newMemory} onChange={(e) => setNewMemory(e.target.value)} placeholder={tt('agentMemoryPlaceholder')} />
+                <button className="btn small" onClick={() => { if (!newMemory.trim()) return; setAgentCfg((p) => ({ ...p, memory: [...(p.memory || []), newMemory.trim()] })); setNewMemory(''); }}>{tt('agentAddMemory')}</button>
+              </div>
+              <h3>{tt('agentHistory')}</h3>
+              {(!agentCfg.history || agentCfg.history.length === 0) ? <p>{tt('agentNoHistory')}</p> : agentCfg.history.map((h, hi) => (
+                <div key={hi} className="key-row">
+                  <span style={{ flex: 1 }}>🤖 {h.task}</span>
+                  <span className={'badge ' + (h.status === 'done' ? '' : 'exhausted')}>{h.status === 'done' ? tt('jobDone') : tt('jobFailed')}</span>
+                  <small style={{ color: 'var(--muted)' }}>{h.at ? new Date(h.at).toLocaleString('ar') : ''}</small>
+                </div>
+              ))}
+            </>)}
+
+            {drawer === 'live' && (<>
+              <p>{tt('liveNote')}</p>
+              <h3>{tt('createJob')}</h3>
+              <div className="field"><label>{tt('jobType')}</label>
+                <select value={jobType} onChange={(e) => setJobType(e.target.value)}>
+                  {JOB_TYPES.map((t) => <option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}
+                </select>
+              </div>
+              <div className="field"><label>{tt('jobTitle')}</label><input value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder={jobTypeById(jobType).titlePlaceholder} /></div>
+              <div className="field"><label>{tt('jobPrompt')}</label><textarea value={jobPrompt} onChange={(e) => setJobPrompt(e.target.value)} rows={3} placeholder={jobTypeById(jobType).promptPlaceholder} /></div>
+              <button className="btn" onClick={createJob} disabled={jobBusy}>{jobBusy ? 'جارٍ الإنشاء…' : '🔴 ' + tt('createJob')}</button>
+              {jobMsg && <div className="note blue" style={{ marginTop: 10 }}>{jobMsg}</div>}
+              <p style={{ fontSize: 12.5 }}>{tt('liveCreateNote')}</p>
+              <h3>{tt('liveJobs')} {jobs.filter((j) => j.status === 'queued' || j.status === 'running').length ? '· ' + jobs.filter((j) => j.status === 'queued' || j.status === 'running').length + ' ' + tt('jobRunning') : ''}</h3>
+              <div style={{ marginBottom: 10 }}><button className="btn ghost small" onClick={refreshJobs}>↻ {tt('jobRefresh')}</button></div>
+              {jobs.length === 0 ? <p>لا مهام بعد — أنشئ أول مهمة خلفية من الأعلى.</p> : jobs.map((j) => (
+                <div key={j.id} className="job-card">
+                  <div className="job-head">
+                    <span>{jobTypeById(j.type).icon} <b>{j.title}</b></span>
+                    <span className={'badge ' + (j.status === 'done' ? 'ok' : j.status === 'failed' ? 'fail' : 'running')}>{jobStatusLabel(j.status, tt)}</span>
+                  </div>
+                  <div className="job-progress"><i style={{ width: Math.min(100, j.progress || 0) + '%' }} /></div>
+                  {j.steps && j.steps.length > 0 && <div className="job-steps">{j.steps.map((s, si) => <div key={si}>{s.status === 'done' ? '✓' : s.status === 'failed' ? '✗' : '⏳'} {s.label}</div>)}</div>}
+                  {j.status === 'done' && j.result && (
+                    <div className="job-result">
+                      {String(j.result).slice(0, 600)}{String(j.result).length > 600 ? '…' : ''}
+                      <div className="msg-actions"><button onClick={() => openBrowserWin({ kind: 'md', code: j.result })}>{tt('viewResult')}</button></div>
+                    </div>
+                  )}
+                  {j.status === 'failed' && j.error && <div className="note">⚠️ {String(j.error).slice(0, 200)}</div>}
+                  <div className="msg-actions">
+                    {j.runUrl && <a className="btn ghost small" href={j.runUrl} target="_blank" rel="noreferrer">{tt('openActionsRun')}</a>}
+                    <button className="btn danger small" onClick={() => setJobs((p) => p.filter((x) => x.id !== j.id))}>حذف</button>
+                  </div>
+                </div>
+              ))}
             </>)}
 
             {drawer === 'settings' && (<>
@@ -2257,6 +2610,9 @@ export default function Home() {
               <h3>{tt('starsBg')}</h3>
               <label className="cmp-chip" style={{ cursor: 'pointer' }}><input type="checkbox" checked={starsOn} onChange={(e) => setStarsOn(e.target.checked)} /> {tt('starsBg')}</label>
               <p style={{ fontSize: 12.5 }}>نجوم ذهبية خافتة متحركة خلف الواجهة. تُطفأ تلقائياً عند تفعيل «تقليل الحركة» في جهازك.</p>
+              <h3>{tt('portraitBg')}</h3>
+              <label className="cmp-chip" style={{ cursor: 'pointer' }}><input type="checkbox" checked={portraitOn} onChange={(e) => setPortraitOn(e.target.checked)} /> {tt('portraitBg')}</label>
+              <p style={{ fontSize: 12.5 }}>صورتك الشخصية خلفية خافتة جداً خلف المحادثة، فوقها طبقة داكنة والنجوم الذهبية — النص يبقى واضحاً تماماً. أطفئها إن أردت خلفية صافية.</p>
               <h3>{tt('plan')}</h3>
               <select value={plan} onChange={(e) => { changePlan(e.target.value); if (e.target.value === 'free') { try { localStorage.setItem('omni_plan', 'free'); } catch {} } }}>
                 {Object.entries(PLANS).map(([id, p]) => <option key={id} value={id}>{p.name} — {p.price}</option>)}
