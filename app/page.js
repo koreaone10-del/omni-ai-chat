@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { PROVIDERS, getProvider, AUTO_ORDER } from '@/lib/providers';
 import { estimateTokens, formatTokens } from '@/lib/tokens';
 import { loadKeyPool, saveKeyPool, addKeyToPool, generateAppApiKey } from '@/lib/keys';
+import { detectIntent, ROUTE_LABELS } from '@/lib/intent';
 
 const PLANS = {
   free: { name: 'مجانية', price: '0$', limit: 100000, images: 5 },
@@ -13,6 +14,7 @@ const FREE_LIMIT = 100000;
 // راوتر FreeLLMAPI المستضاف على Railway (عام، HTTPS) — لا Termux ولا localhost
 const FL_DEFAULT_URL = 'https://freellmapi-production-c529c3c7.up.railway.app/v1';
 const FL_DASHBOARD_URL = 'https://freellmapi-production-c529c3c7.up.railway.app/';
+const PAGE_SIZE = 50; // نافذة عرض الرسائل — للجلسات الطويلة جداً
 
 // ---------- markdown خفيف (بدون مكتبات) ----------
 function inlineMd(text, keyPrefix) {
@@ -50,12 +52,19 @@ function renderMd(text) {
 }
 function textOf(msg) {
   if (msg.compare) return (msg.results || []).map((r) => `[${getProvider(r.provider).name}]: ${r.error ? 'خطأ — ' + r.error : (r.content || '')}`).join('\n\n');
+  if (msg.kind === 'image') return '[صورة مولّدة: ' + (msg.prompt || '') + '] ' + (msg.imageUrl || '');
   if (typeof msg.content === 'string') return msg.content;
   if (Array.isArray(msg.content)) return msg.content.filter((c) => c.type === 'text').map((c) => c.text).join('\n');
   return '';
 }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function todayKey() { return new Date().toISOString().slice(0, 10); }
+// وصف صورة من سياق الجلسة — عندما يقول المستخدم «اريد صورة هنا» دون موضوع
+function subjectFromHistory(messages) {
+  const last = [...(messages || [])].reverse().find((m) => m.role === 'assistant' && textOf(m).trim());
+  if (!last) return '';
+  return textOf(last).replace(/https?:\/\/\S+/g, ' ').replace(/[#*`_[\]()]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 140);
+}
 
 export default function Home() {
   const [sessions, setSessions] = useState([]);
@@ -70,6 +79,9 @@ export default function Home() {
   const [error, setError] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [drawer, setDrawer] = useState(null); // keys | freellmapi | settings | stats | image | video | pricing
+  const [sheet, setSheet] = useState(null); // model | tools — ورقة سفلية بأسلوب Claude
+  const [pendingTool, setPendingTool] = useState(null); // أداة صريحة من ورقة "+" تفوز على الكشف التلقائي
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE); // نافذة الرسائل المعروضة
   const [authOpen, setAuthOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [plan, setPlan] = useState('free');
@@ -84,10 +96,9 @@ export default function Home() {
   const [newKeyProvider, setNewKeyProvider] = useState('groq');
   const [newKeyValue, setNewKeyValue] = useState('');
   const [customBase, setCustomBase] = useState(''); // نقطة نهاية مخصصة لمزود «custom» فقط
-  const [quickKey, setQuickKey] = useState(''); // مفتاح Groq السريع في شاشة البداية
-  const [quickSaved, setQuickSaved] = useState('');
   const [flUrl, setFlUrl] = useState(''); // رابط راوتر FreeLLMAPI المستضاف (Railway)
-  const [flKey, setFlKey] = useState(''); // المفتاح الموحد freellmapi-… (متصفحك فقط)
+  const [flKeys, setFlKeys] = useState([]); // مفاتيح FreeLLMAPI الموحدة — عدة حسابات مع تداول
+  const [newFlKey, setNewFlKey] = useState('');
   const [flTest, setFlTest] = useState('');
   const [guideOpen, setGuideOpen] = useState(false); // دليل FreeLLMAPI
   const [appKey, setAppKey] = useState('');
@@ -102,8 +113,10 @@ export default function Home() {
   const [vidLoading, setVidLoading] = useState(false);
   const [showThink, setShowThink] = useState({});
   const fileRef = useRef(null);
+  const fileImageOnlyRef = useRef(null);
   const chatRef = useRef(null);
   const composerRef = useRef(null);
+  const flCursorRef = useRef(0); // مؤشر التداول الدوري بين مفاتيح FreeLLMAPI
 
   // تحميل الحالة المحفوظة
   useEffect(() => {
@@ -120,13 +133,19 @@ export default function Home() {
       setAppKey(localStorage.getItem('omni_appkey') || '');
       setCustomBase(localStorage.getItem('omni_custom_base') || '');
       setFlUrl(localStorage.getItem('omni_freellmapi_url') || FL_DEFAULT_URL);
-      const loadedFlKey = localStorage.getItem('omni_freellmapi_key') || '';
-      setFlKey(loadedFlKey);
+      // مفاتيح FreeLLMAPI: قائمة جديدة، مع ترحيل المفتاح الواحد القديم كـ «حساب 1»
+      let loadedFlKeys = [];
+      try { loadedFlKeys = JSON.parse(localStorage.getItem('omni_freellmapi_keys') || '[]'); } catch {}
+      if (!Array.isArray(loadedFlKeys) || !loadedFlKeys.length) {
+        const oldSingle = localStorage.getItem('omni_freellmapi_key') || '';
+        if (oldSingle.trim()) loadedFlKeys = [{ id: uid(), label: 'حساب 1', value: oldSingle.trim(), status: 'active', lastUsed: null, lastError: null }];
+      }
+      setFlKeys(loadedFlKeys);
       // وضع المقارنة: يُحمّل بعد المفاتيح لأنه يعتمد عليها
       const cmpEligible = (pid) => {
         if (pid === 'ollama' || pid === 'custom') return false;
         if (pid === 'pollinations') return true;
-        if (pid === 'freellmapi') return !!loadedFlKey.trim();
+        if (pid === 'freellmapi') return loadedFlKeys.some((k) => k.status !== 'exhausted');
         return (loadedKeys[pid] || []).some((k) => k.status !== 'exhausted');
       };
       let savedCmp = null;
@@ -146,11 +165,13 @@ export default function Home() {
   useEffect(() => { try { localStorage.setItem('omni_daily', JSON.stringify(daily)); } catch {} }, [daily]);
   useEffect(() => { try { localStorage.setItem('omni_compare_on', compareOn ? '1' : '0'); } catch {} }, [compareOn]);
   useEffect(() => { try { localStorage.setItem('omni_compare_providers', JSON.stringify(compareProviders)); } catch {} }, [compareProviders]);
+  useEffect(() => { try { localStorage.setItem('omni_freellmapi_keys', JSON.stringify(flKeys)); } catch {} }, [flKeys]);
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [currentId]); // جلسة جديدة = أول 50 رسالة
   useEffect(() => { chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: 'smooth' }); }, [sessions, loading]);
-  // إغلاق القائمة/الدرج/النافذة بزر Escape — يعيد دائماً إلى عرض محادثة نظيف
+  // إغلاق القائمة/الدرج/الورقة/النافذة بزر Escape — يعيد دائماً إلى عرض محادثة نظيف
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === 'Escape') { setSidebarOpen(false); setDrawer(null); setAuthOpen(false); setGuideOpen(false); }
+      if (e.key === 'Escape') { setSidebarOpen(false); setDrawer(null); setAuthOpen(false); setGuideOpen(false); setSheet(null); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -161,7 +182,61 @@ export default function Home() {
   const planInfo = PLANS[plan];
   const remaining = Math.max(0, planInfo.limit - daily.tokens);
   const provider = getProvider(providerId === 'auto' ? 'groq' : providerId);
-  const models = providerId === 'auto' ? ['تلقائي — يختار الأفضل المتاح'] : provider.models;
+
+  // ---------- مفاتيح FreeLLMAPI: تداول دوري + حالة كل مفتاح ----------
+  // ترتيب الإرسال يبدأ من مؤشر متحرك (round-robin بين الطلبات)،
+  // والخادم يجرّب المفاتيح بالترتيب وينتقل للتالي عند 401/429/نفاد الرصيد.
+  function flKeyEntries() {
+    const list = flKeys.filter((k) => k.value && k.status !== 'exhausted').map((k) => ({ id: k.id, value: k.value, status: 'active' }));
+    if (!list.length) return [];
+    const start = flCursorRef.current % list.length;
+    flCursorRef.current += 1;
+    return [...list.slice(start), ...list.slice(0, start)];
+  }
+  function noteFlKeyUsed(sentOrder, keyIndex, ok, errMsg) {
+    if (!Array.isArray(sentOrder) || sentOrder.length === 0) return;
+    const entry = sentOrder[Math.min(keyIndex || 0, sentOrder.length - 1)];
+    if (!entry?.id) return;
+    setFlKeys((prev) => prev.map((k) => (k.id === entry.id
+      ? { ...k, status: ok ? 'active' : (errMsg && /401|429|quota|رصيد|insufficient/i.test(String(errMsg)) ? 'exhausted' : k.status), lastUsed: Date.now(), lastError: ok ? null : String(errMsg || '').slice(0, 120) }
+      : k)));
+  }
+  function saveFlUrl(v) { setFlUrl(v); try { localStorage.setItem('omni_freellmapi_url', v); } catch {} }
+  function addFlKey() {
+    const v = newFlKey.trim();
+    if (!v) return;
+    if (flKeys.some((k) => k.value === v)) { setFlTest('هذا المفتاح مضاف أصلاً.'); return; }
+    setFlKeys((p) => [...p, { id: uid(), label: 'حساب ' + (p.length + 1), value: v, status: 'active', lastUsed: null, lastError: null }]);
+    setNewFlKey(''); setFlTest('تمت إضافة المفتاح — جرّب «اختبار كل المفاتيح» للتأكد منه.');
+  }
+  async function testFreellmapi() {
+    const base = String(flUrl || '').replace(/\/$/, '');
+    if (!base) { setFlTest('أدخل رابط الراوتر أولاً (الافتراضي ' + FL_DEFAULT_URL + ').'); return; }
+    if (!flKeys.length) { setFlTest('أضف مفتاحاً موحداً freellmapi-… من صفحة Keys في لوحة الراوتر أولاً.'); return; }
+    setFlTest('جارٍ اختبار ' + flKeys.length + ' مفتاح عبر خادم الموقع…');
+    const results = [];
+    for (const k of flKeys) {
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [{ role: 'user', content: 'قل: ok' }],
+            providerId: 'freellmapi', model: 'auto',
+            apiKeys: { freellmapi: [{ value: k.value, status: 'active' }] },
+            baseURL: base, deepThinking: false
+          })
+        });
+        const data = await res.json();
+        const ok = res.ok;
+        results.push(k.label + ': ' + (ok ? '✓ يعمل' : '✗ فشل (' + String(data?.error || res.status).slice(0, 60) + ')'));
+        setFlKeys((prev) => prev.map((x) => (x.id === k.id ? { ...x, status: ok ? 'active' : 'exhausted', lastUsed: Date.now(), lastError: ok ? null : String(data?.error || res.status).slice(0, 120) } : x)));
+      } catch (e) {
+        results.push(k.label + ': ✗ تعذّر الوصول');
+        setFlKeys((prev) => prev.map((x) => (x.id === k.id ? { ...x, lastUsed: Date.now(), lastError: String(e.message || e).slice(0, 120) } : x)));
+      }
+    }
+    setFlTest(results.join(' · '));
+  }
 
   function updateSession(id, fn) { setSessions((prev) => prev.map((s) => (s.id === id ? fn(s) : s))); }
   function newChat() {
@@ -206,57 +281,11 @@ export default function Home() {
     if (hasFile) e.preventDefault();
   }
 
-  // ---------- البداية السريعة (بدون أي راوتر) ----------
-  function saveCustomBase(v) { setCustomBase(v); try { localStorage.setItem('omni_custom_base', v); } catch {} }
-  function saveQuickGroqKey() {
-    if (!quickKey.trim()) { setQuickSaved('أدخل مفتاح Groq أولاً — احصل عليه مجاناً من console.groq.com/keys.'); return; }
-    setKeys((p) => addKeyToPool(p, 'groq', quickKey.trim()));
-    setQuickKey('');
-    setQuickSaved('✓ تم حفظ مفتاح Groq — اكتب رسالتك الآن، وسيختار الوضع التلقائي أفضل مزود متاح.');
-    setProviderId('auto');
-  }
-  function tryWithoutKey() {
-    setProviderId('auto'); setModel('');
-    setTimeout(() => composerRef.current?.focus(), 50);
-  }
-
-  // ---------- FreeLLMAPI — الراوتر المستضاف (Railway) ----------
-  // الرابط عام (HTTPS) فيمر دائماً عبر وكيل خادم الموقع /api/chat — لا اتصال مباشر ولا localhost.
-  function saveFlUrl(v) { setFlUrl(v); try { localStorage.setItem('omni_freellmapi_url', v); } catch {} }
-  function saveFlKey(v) { setFlKey(v); try { localStorage.setItem('omni_freellmapi_key', v); } catch {} }
-
-  async function testFreellmapi() {
-    const base = String(flUrl || '').replace(/\/$/, '');
-    if (!base) { setFlTest('أدخل رابط الراوتر أولاً (الافتراضي ' + FL_DEFAULT_URL + ').'); return; }
-    if (!flKey.trim()) { setFlTest('أدخل المفتاح الموحد freellmapi-… من صفحة Keys في لوحة الراوتر أولاً.'); return; }
-    setFlTest('جارٍ اختبار الاتصال عبر خادم الموقع…');
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: 'قل: ok' }],
-          providerId: 'freellmapi', model: 'auto',
-          apiKeys: { freellmapi: [{ value: flKey.trim(), status: 'active' }] },
-          baseURL: base, deepThinking: false
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        const detail = data?.attempts?.[0]?.error || data?.error || res.status;
-        setFlTest(String(detail).includes('401') ? 'المفتاح غير صحيح (401) — تأكد من نسخ المفتاح الموحد كاملاً من لوحة الراوتر.' : 'تعذّر الاتصال بالراوتر: ' + String(detail).slice(0, 180));
-        return;
-      }
-      setFlTest('✓ متصل — الراوتر ردّ عبر خادم الموقع: ' + String(data.content || '').slice(0, 80));
-    } catch (e) {
-      setFlTest('تعذّر الوصول إلى الراوتر: ' + String(e.message || e));
-    }
-  }
-
   // ---------- وضع المقارنة: نفس السؤال لعدة مزودين دفعة واحدة ----------
   function isCompareEligible(pid) {
     if (pid === 'ollama' || pid === 'custom') return false; // محلي / يحتاج إعداد نقطة نهاية يدوياً
     if (pid === 'pollinations') return true; // بدون مفتاح
-    if (pid === 'freellmapi') return !!flKey.trim(); // يحتاج المفتاح الموحد المحفوظ
+    if (pid === 'freellmapi') return flKeys.some((k) => k.status !== 'exhausted'); // يحتاج مفتاحاً موحداً محفوظاً
     return (keys[pid] || []).some((k) => k.status !== 'exhausted');
   }
   function toggleCompareProvider(pid) {
@@ -293,19 +322,22 @@ export default function Home() {
     const t0 = Date.now();
     try {
       let data;
+      let sentFl = null;
       if (pid === 'freellmapi') {
-        if (!flKey.trim()) throw new Error('أضف المفتاح الموحد (freellmapi-…) من لوحة الراوتر في إعدادات FreeLLMAPI أولاً.');
+        sentFl = flKeyEntries();
+        if (!sentFl.length) throw new Error('أضف المفتاح الموحد (freellmapi-…) من لوحة الراوتر في إعدادات FreeLLMAPI أولاً.');
         const res = await fetch('/api/chat', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             messages: apiMessages,
             providerId: pid, model: modelName,
-            apiKeys: { ...keys, freellmapi: [{ value: flKey.trim(), status: 'active' }] },
+            apiKeys: { ...keys, freellmapi: sentFl },
             baseURL: flUrl || FL_DEFAULT_URL, deepThinking
           })
         });
         data = await res.json();
         if (!res.ok) throw new Error(data.error || 'فشل الطلب.');
+        noteFlKeyUsed(sentFl, data.keyIndex, true);
         data.via = 'عبر خادم الموقع';
       } else {
         const res = await fetch('/api/chat', {
@@ -331,6 +363,7 @@ export default function Home() {
       return { provider: pid, model: modelName, content: '', tokens: 0, seconds: (Date.now() - t0) / 1000, reasoning: null, via: null, error: String(e.message || e) };
     }
   }
+
   async function sendCompare(textOverride) {
     const text = (textOverride ?? input).trim();
     if (!text && attachments.length === 0) return;
@@ -342,7 +375,7 @@ export default function Home() {
     const imageAtt = attachments.find((a) => a.kind === 'image');
     const pdfNote = attachments.filter((a) => a.kind === 'pdf').map((a) => `\n[ملف PDF مرفق: ${a.name} — لم يُستخرج نصه، انسخ نصه والصقه.]`).join('');
     const userContent = text + attachText + pdfNote;
-    const userMsg = { role: 'user', content: userContent, tokens: estimateTokens(userContent) };
+    const userMsg = { role: 'user', content: userContent, tokens: estimateTokens(userContent), route: 'compare' };
     const history = [...current.messages, userMsg];
     updateSession(current.id, (s) => ({ ...s, title: s.messages.length === 0 ? text.slice(0, 40) || 'محادثة جديدة' : s.title, messages: history, tokens: (s.tokens || 0) + userMsg.tokens }));
     setInput(''); setAttachments([]); setLoading(true);
@@ -361,14 +394,14 @@ export default function Home() {
       if (ok.length === 0) setError('فشلت كل المزودين المحددين — تحقق من مفاتيحك ثم أعد المحاولة.');
     } finally { setLoading(false); }
   }
-  function sendCurrent(textOverride) { if (compareOn) sendCompare(textOverride); else sendMessage(textOverride); }
 
   // ---------- الإرسال ----------
-  async function sendMessage(textOverride) {
+  async function sendMessage(textOverride, opts = {}) {
     const text = (textOverride ?? input).trim();
     if (!text && attachments.length === 0) return;
     if (daily.tokens >= planInfo.limit) { setError('بلغت حد الخطة اليومي (' + formatTokens(planInfo.limit) + ' توكن). راجع الأسعار للترقية أو انتظر الغد.'); setDrawer('pricing'); return; }
     if (!current) return;
+    const deep = opts.deep || deepThinking;
     setError('');
     const attachText = attachments.filter((a) => a.kind === 'text').map((a) => `\n\n[ملف: ${a.name}]\n${a.content.slice(0, 12000)}`).join('');
     const imageAtt = attachments.find((a) => a.kind === 'image');
@@ -378,20 +411,18 @@ export default function Home() {
     if (imageAtt && providerId !== 'auto' && provider.supportsVision) {
       apiContent = [{ type: 'text', text: userContent || 'صف هذه الصورة وحلّلها.' }, { type: 'image_url', image_url: { url: imageAtt.dataUrl } }];
     }
-    const userMsg = { role: 'user', content: userContent, tokens: estimateTokens(userContent) };
+    const userMsg = { role: 'user', content: userContent, tokens: estimateTokens(userContent), route: opts.route || null };
     const history = [...current.messages, userMsg];
     updateSession(current.id, (s) => ({ ...s, title: s.messages.length === 0 ? text.slice(0, 40) || 'محادثة جديدة' : s.title, messages: history, tokens: (s.tokens || 0) + userMsg.tokens }));
     setInput(''); setAttachments([]); setLoading(true);
     try {
       const apiMessages = historyApiMessages(history, userMsg, apiContent);
-      const systemExtra = deepThinking
-        ? 'فكّر خطوة بخطوة بعمق قبل الإجابة. ابدأ إجابتك بقسم قصير بعنوان "التفكير:" يلخّص خطوات تفكيرك (3-6 أسطر)، ثم ضع الإجابة النهائية بعد سطر "الإجابة:".'
-        : 'أجب بدقة وبشكل مباشر ومنظّم.';
       // كل المزودين يمرون عبر وكيل خادم الموقع /api/chat.
       let data;
       if (providerId === 'freellmapi') {
         // --- FreeLLMAPI: الراوتر المستضاف على Railway — دائماً عبر وكيل الخادم ---
-        if (!flKey.trim()) {
+        const sentFl = flKeyEntries();
+        if (!sentFl.length) {
           setError('أضف المفتاح الموحد (freellmapi-…) من لوحة الراوتر في إعدادات FreeLLMAPI أولاً.');
           setDrawer('freellmapi');
           return;
@@ -402,12 +433,13 @@ export default function Home() {
           body: JSON.stringify({
             messages: apiMessages,
             providerId, model: modelName,
-            apiKeys: { ...keys, freellmapi: [{ value: flKey.trim(), status: 'active' }] },
-            baseURL: flUrl || FL_DEFAULT_URL, deepThinking
+            apiKeys: { ...keys, freellmapi: sentFl },
+            baseURL: flUrl || FL_DEFAULT_URL, deepThinking: deep
           })
         });
         data = await res.json();
         if (!res.ok) throw new Error(data.error || 'فشل الطلب.');
+        noteFlKeyUsed(sentFl, data.keyIndex, true);
         data.via = 'عبر خادم الموقع';
       } else {
         const res = await fetch('/api/chat', {
@@ -416,7 +448,7 @@ export default function Home() {
             messages: apiMessages,
             providerId, model: providerId === 'auto' ? undefined : (model || provider.models[0]),
             apiKeys: keys, baseURL: providerId === 'custom' ? customBase : undefined,
-            deepThinking
+            deepThinking: deep
           })
         });
         data = await res.json();
@@ -429,6 +461,91 @@ export default function Home() {
     } catch (e) {
       setError(String(e.message || e));
     } finally { setLoading(false); }
+  }
+
+  // ---------- توليد صورة من داخل المحادثة (عبر الموجّه الذكي) ----------
+  // طلب صورة لا يردّ عليه بنص أبداً: إما صورة ظاهرة في المحادثة أو خطأ صريح.
+  async function genImageChat(textOverride) {
+    const text = (textOverride ?? input).trim();
+    if (!current) return;
+    if (daily.images >= planInfo.images) { setError('بلغت حد صور اليوم في خطتك (' + planInfo.images + ').'); setDrawer('pricing'); return; }
+    let prompt = detectIntent(text, {}).prompt;
+    if (!prompt) prompt = subjectFromHistory(current.messages) || 'مشهد جميل';
+    setError('');
+    const userMsg = { role: 'user', content: text, tokens: estimateTokens(text), route: 'image' };
+    const history = [...current.messages, userMsg];
+    updateSession(current.id, (s) => ({ ...s, title: s.messages.length === 0 ? prompt.slice(0, 40) : s.title, messages: history, tokens: (s.tokens || 0) + userMsg.tokens }));
+    setInput(''); setAttachments([]); setLoading(true);
+    try {
+      const res = await fetch('/api/image', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, apiKeys: keys, flKeys: flKeys.filter((k) => k.status !== 'exhausted').map((k) => ({ value: k.value })), flUrl: flUrl || FL_DEFAULT_URL, size: '1024x1024' })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'فشل توليد الصورة.');
+      const viaName = data.via === 'pollinations' ? 'Pollinations' : data.via === 'freellmapi' ? 'FreeLLMAPI Router' : getProvider(data.via).name;
+      const imgMsg = {
+        role: 'assistant', kind: 'image', imageUrl: data.url, prompt,
+        via: viaName + (data.free ? ' — بديل مجاني (جودة أقل)' : ''),
+        note: data.note || null, tokens: 0
+      };
+      updateSession(current.id, (s) => ({ ...s, messages: [...s.messages, imgMsg] }));
+      setDaily((d) => ({ ...d, images: d.images + 1 }));
+    } catch (e) {
+      const errMsg = { role: 'assistant', content: 'تعذّر توليد الصورة: ' + String(e.message || e) + '\n\nتأكد من اتصالك، أو أضف مفتاح OpenAI / Together / Hugging Face من مدير المفاتيح، أو مفتاح FreeLLMAPI موحداً.', tokens: 0 };
+      updateSession(current.id, (s) => ({ ...s, messages: [...s.messages, errMsg] }));
+    } finally { setLoading(false); }
+  }
+
+  // ---------- توليد فيديو من داخل المحادثة (عبر الموجّه الذكي) ----------
+  // لا فيديو وهمي أبداً: إما فيديو حقيقي أو شرح صريح بالخطوات.
+  async function genVideoChat(textOverride) {
+    const text = (textOverride ?? input).trim();
+    if (!current) return;
+    const prompt = detectIntent(text, {}).prompt || text;
+    setError('');
+    const userMsg = { role: 'user', content: text, tokens: estimateTokens(text), route: 'video' };
+    const history = [...current.messages, userMsg];
+    updateSession(current.id, (s) => ({ ...s, title: s.messages.length === 0 ? prompt.slice(0, 40) : s.title, messages: history, tokens: (s.tokens || 0) + userMsg.tokens }));
+    setInput(''); setAttachments([]); setLoading(true);
+    try {
+      const res = await fetch('/api/video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, provider: vidProvider, apiKeys: keys }) });
+      const data = await res.json();
+      const content = res.ok
+        ? 'تم إنشاء الفيديو:\n' + String(data.url || data.videoUrl || '')
+        : (data.error || 'تعذّر توليد الفيديو.') + (data.howTo ? '\n\n' + data.howTo : '');
+      updateSession(current.id, (s) => ({ ...s, messages: [...s.messages, { role: 'assistant', content, tokens: estimateTokens(content) }] }));
+    } catch (e) {
+      updateSession(current.id, (s) => ({ ...s, messages: [...s.messages, { role: 'assistant', content: 'تعذّر توليد الفيديو: ' + String(e.message || e), tokens: 0 }] }));
+    } finally { setLoading(false); }
+  }
+
+  // ---------- نقطة الدخول الواحدة للإرسال: الأداة الصريحة تفوز، ثم الكشف الذكي ----------
+  function sendCurrent(textOverride) {
+    const text = (textOverride ?? input).trim();
+    if (!text && attachments.length === 0) return;
+    const tool = pendingTool;
+    setPendingTool(null);
+    if (tool === 'image') { genImageChat(textOverride); return; }
+    if (tool === 'video') { genVideoChat(textOverride); return; }
+    const hasImage = attachments.some((a) => a.kind === 'image');
+    const intent = detectIntent(text, { hasImageAttachment: hasImage });
+    if (intent.type === 'image') { genImageChat(textOverride); return; }
+    if (intent.type === 'video') { genVideoChat(textOverride); return; }
+    if (intent.type === 'compare') { if (!compareOn) enableCompare(); sendCompare(textOverride); return; }
+    if (intent.type === 'deep') { sendMessage(textOverride, { deep: true }); return; }
+    if (compareOn) sendCompare(textOverride); else sendMessage(textOverride);
+  }
+  // اختيار أداة من ورقة "+": إن كان في الصندوق نص يُرسل فوراً، وإلا تُحفظ الأداة للرسالة التالية
+  function chooseTool(tool) {
+    setSheet(null);
+    if (tool === 'image' || tool === 'video') {
+      if (input.trim()) { setPendingTool(tool); sendCurrent(); }
+      else { setPendingTool(tool); setTimeout(() => composerRef.current?.focus(), 50); }
+      return;
+    }
+    if (tool === 'deep') { setDeepThinking((v) => !v); return; }
+    if (tool === 'compare') { if (compareOn) setCompareOn(false); else enableCompare(); return; }
   }
 
   // ---------- المصادقة التجريبية ----------
@@ -461,13 +578,13 @@ export default function Home() {
     } catch (e) { setTestResult('تعذّر الاختبار: ' + String(e.message || e)); }
   }
 
-  // ---------- الصور والفيديو ----------
+  // ---------- الصور والفيديو (من الدرج) ----------
   async function genImage() {
     if (!imgPrompt.trim()) return;
     if (daily.images >= planInfo.images) { setError('بلغت حد صور اليوم في خطتك (' + planInfo.images + ').'); setDrawer('pricing'); return; }
     setImgLoading(true); setImgResult(null);
     try {
-      const res = await fetch('/api/image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: imgPrompt, providerId: 'openai', apiKeys: keys, size: imgSize }) });
+      const res = await fetch('/api/image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: imgPrompt, apiKeys: keys, flKeys: flKeys.filter((k) => k.status !== 'exhausted').map((k) => ({ value: k.value })), flUrl: flUrl || FL_DEFAULT_URL, size: imgSize }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'فشل توليد الصورة.');
       setImgResult(data); setDaily((d) => ({ ...d, images: d.images + 1 }));
@@ -528,23 +645,37 @@ export default function Home() {
     });
     return out;
   }, [keys]);
-  const hasGroqKey = (keys.groq || []).some((k) => k.status !== 'exhausted');
 
   const currentModelLabel = compareOn ? '⚔️ مقارنة (' + compareProviders.length + ')' : (providerId === 'auto' ? '⚡ تلقائي' : provider.name + (model ? ' · ' + model : ''));
+  const modelBadge = (p) => {
+    if (p.id === 'groq') return 'الأسرع';
+    if (p.id === 'openai') return 'الأذكى';
+    if (p.id === 'freellmapi') return '10.1B توكن';
+    if (p.id === 'pollinations') return 'مجاني';
+    if (p.id === 'ollama') return 'محلي';
+    return p.needsKey ? 'يحتاج مفتاحاً' : 'مجاني';
+  };
+  const visibleMessages = current ? current.messages.slice(-visibleCount) : [];
+  const olderCount = current ? Math.max(0, current.messages.length - visibleCount) : 0;
 
   return (
     <div className="app">
       {/* خلفية معتمة للقائمة الجانبية على الهاتف — النقر عليها يغلقها */}
       {sidebarOpen && <div className="backdrop" onClick={() => setSidebarOpen(false)} aria-hidden="true" />}
 
-      {/* الشريط الجانبي */}
+      {/* الشريط الجانبي — كل التفاصيل هنا، لا شيء منها في الواجهة الرئيسية */}
       <aside className={'sidebar' + (sidebarOpen ? ' open' : '')}>
         <div className="sidebar-head">
           <div className="logo">OmniAI <small>منصة ذكاء اصطناعي موحدة</small></div>
           <button className="sidebar-close" onClick={() => setSidebarOpen(false)} aria-label="إغلاق القائمة">✕</button>
         </div>
         <button className="btn btn-block" onClick={newChat}>+ محادثة جديدة</button>
-        <div className="stat-box">توكنات اليوم: <b>{formatTokens(daily.tokens)}</b> / {formatTokens(planInfo.limit)} — متبقٍ <b>{formatTokens(remaining)}</b><br />كل الجلسات: <b>{formatTokens(totalTokens)}</b> توكن · {sessions.length} جلسة</div>
+        <div className="stat-box">
+          الخطة: <b>{planInfo.name}</b> — {planInfo.price}<br />
+          توكنات اليوم: <b>{formatTokens(daily.tokens)}</b> / {formatTokens(planInfo.limit)} — متبقٍ <b>{formatTokens(remaining)}</b><br />
+          كل الجلسات: <b>{formatTokens(totalTokens)}</b> توكن · {sessions.length} جلسة<br />
+          {user ? <>الحساب: {user.contact}</> : 'لم تسجّل الدخول بعد'}
+        </div>
         <div className="session-list">
           {sessions.map((s) => (
             <div key={s.id} className={'session-item' + (s.id === currentId ? ' active' : '')} onClick={() => { setCurrentId(s.id); setSidebarOpen(false); }}>
@@ -558,7 +689,7 @@ export default function Home() {
         </div>
         <div className="sidebar-foot">
           <button className="btn ghost" onClick={() => { setGuideOpen(true); setSidebarOpen(false); }}>🚀 FreeLLMAPI — 10.1 مليار توكن</button>
-          <button className="btn ghost" onClick={() => { setDrawer('freellmapi'); setSidebarOpen(false); }}>⚙️ إعدادات FreeLLMAPI {flKey.trim() ? '✓' : ''}</button>
+          <button className="btn ghost" onClick={() => { setDrawer('freellmapi'); setSidebarOpen(false); }}>⚙️ إعدادات FreeLLMAPI {flKeys.length ? '✓ ' + flKeys.length : ''}</button>
           <button className="btn ghost" onClick={() => { setDrawer('keys'); setSidebarOpen(false); }}>🔑 مدير المفاتيح</button>
           <button className="btn ghost" onClick={() => { setDrawer('image'); setSidebarOpen(false); }}>🖼 توليد الصور</button>
           <button className="btn ghost" onClick={() => { setDrawer('video'); setSidebarOpen(false); }}>🎬 توليد الفيديو</button>
@@ -571,163 +702,105 @@ export default function Home() {
         </div>
       </aside>
 
-      {/* الرئيسي */}
+      {/* الرئيسي — واجهة نظيفة بأسلوب Claude: لا أشرطة مزدحمة ولا أزرار زائدة */}
       <main className="main">
         <header className="topbar-main">
           <button className="menu-btn" onClick={() => setSidebarOpen(true)} aria-label="فتح القائمة">☰</button>
           <span className="brand">OmniAI</span>
-          <span className="model-pill">{currentModelLabel}</span>
+          <span className="session-title">{current?.title || ''}</span>
           <span className="spacer" />
-          <span className="plan-pill">الخطة: <b>{planInfo.name}</b> — {planInfo.price}</span>
-          {user
-            ? <button className="btn ghost small" onClick={() => { setUser(null); try { localStorage.removeItem('omni_user'); } catch {} }}>👤 {user.contact}</button>
-            : <button className="btn ghost small" onClick={() => setAuthOpen(true)}>👤 دخول</button>}
         </header>
-
-        <div className="hero">
-          <span className="tagline"><b>مزودون متعددون</b> · تدوير مفاتيح تلقائي عند نفاد الرصيد</span>
-          <span className="pills">
-            <span className="pill">🤖 محادثة</span><span className="pill">🖼 صور</span><span className="pill">🎬 فيديو</span><span className="pill">🧠 تفكير عميق</span><span className="pill">📁 ملفات</span>
-          </span>
-        </div>
-
-        <div className="controls">
-          {!compareOn && (
-            <>
-              <select value={providerId} onChange={(e) => { setProviderId(e.target.value); setModel(''); }} aria-label="المزود">
-                <option value="auto">⚡ تلقائي — أفضل مزود متاح</option>
-                {PROVIDERS.map((p) => <option key={p.id} value={p.id}>{p.name}{p.needsKey ? '' : ' (بدون مفتاح)'}</option>)}
-              </select>
-              {providerId === 'freellmapi' ? (
-                <input type="text" value={model} onChange={(e) => setModel(e.target.value)} placeholder="auto — يختار الراوتر، أو اكتب اسم نموذج" aria-label="النموذج" dir="ltr" />
-              ) : (
-                <select value={model} onChange={(e) => setModel(e.target.value)} aria-label="النموذج">
-                  {models.map((m) => <option key={m} value={m}>{m}</option>)}
-                </select>
-              )}
-            </>
-          )}
-          <button className={'toggle' + (deepThinking ? ' on' : '')} onClick={() => setDeepThinking(!deepThinking)} title="يطلب من النموذج التفكير خطوة بخطوة ويعرض قسم التفكير">🧠 تفكير عميق {deepThinking ? 'مفعّل' : 'متوقف'}</button>
-          <button className={'toggle' + (compareOn ? ' on' : '')} onClick={() => (compareOn ? setCompareOn(false) : enableCompare())} title="أرسل سؤالك لعدة مزودين في الوقت نفسه وقارن إجاباتهم جنباً إلى جنب">⚔️ مقارنة {compareOn ? 'مفعّلة' : 'متوقفة'}</button>
-          {current && (
-            <span className="actions">
-              <button className="btn ghost small" onClick={() => copyText(current.messages.map((m) => (m.role === 'user' ? 'أنت: ' : 'OmniAI: ') + textOf(m)).join('\n\n'), 'all')}>{copied === 'all' ? '✓ تم النسخ' : '📋 نسخ الجلسة'}</button>
-              <button className="btn ghost small" onClick={() => exportSession('md')}>⬇ تصدير .md</button>
-              <button className="btn ghost small" onClick={() => exportSession('json')}>⬇ تصدير .json</button>
-            </span>
-          )}
-        </div>
-
-        {compareOn && (
-          <div className="compare-picker">
-            <span className="compare-picker-title">⚔️ المزودون المتنافسون:</span>
-            {PROVIDERS.filter((p) => p.id !== 'ollama' && p.id !== 'custom').map((p) => {
-              const ok = isCompareEligible(p.id);
-              const checked = compareProviders.includes(p.id);
-              return (
-                <label key={p.id} className={'cmp-chip' + (checked ? ' on' : '') + (ok ? '' : ' disabled')}>
-                  <input type="checkbox" checked={checked} disabled={!ok} onChange={() => toggleCompareProvider(p.id)} />
-                  {p.name}
-                  {!ok && <small> — أضف مفتاحاً</small>}
-                </label>
-              );
-            })}
-            <span className="compare-picker-hint">سؤال واحد يُرسل للجميع في الوقت نفسه — والأسرع يظهر بشارة ⚡.</span>
-          </div>
-        )}
 
         <div className="chat" ref={chatRef}>
           <div className="chat-inner">
             {!current || current.messages.length === 0 ? (
               <div className="empty">
-                <h2>مرحباً بك في OmniAI 👋</h2>
-                <p>اسأل أي شيء، ارفع ملفاً، أو ولّد صورة. اختر «تلقائي» وسيجرّب الموقع المزودين المجانيين أولاً، وينتقل للبديل تلقائياً إذا نفد رصيد مفتاح.</p>
-
-                {/* بطاقة البداية بضغطة واحدة — بدون راوتر وبدون تعقيدات */}
-                <div className="quickstart">
-                  <h3>🚀 ابدأ الآن</h3>
-                  {hasGroqKey ? (
-                    <p className="quick-ok">✓ مفتاح Groq محفوظ — اكتب رسالتك في الأسفل وسيعمل الوضع التلقائي فوراً.</p>
-                  ) : (
-                    <>
-                      <p>ألصق مفتاح Groq المجاني (دقيقة واحدة من <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer">console.groq.com/keys</a>)، أو جرّب بدون مفتاح عبر Pollinations:</p>
-                      <div className="quick-row">
-                        <input type="password" value={quickKey} onChange={(e) => setQuickKey(e.target.value)} placeholder="gsk_… مفتاح Groq" dir="ltr" aria-label="مفتاح Groq" />
-                        <button className="btn" onClick={saveQuickGroqKey}>حفظ المفتاح</button>
-                      </div>
-                      {quickSaved && <div className="note blue">{quickSaved}</div>}
-                      <button className="btn ghost" onClick={tryWithoutKey}>✨ جرّب بدون مفتاح</button>
-                    </>
-                  )}
-                </div>
-
-                <p style={{ fontSize: 13, marginTop: 8 }}>أو استعمل <b>FreeLLMAPI</b> — راوتر سحابي مستضاف يجمع الحصص المجانية لـ 87 مزوداً (10.1 مليار توكن) خلف مفتاح موحد واحد، بدون Termux وبدون أي تثبيت: <button className="btn ghost small" onClick={() => setGuideOpen(true)}>🚀 دليل FreeLLMAPI — 10.1 مليار توكن</button></p>
-                <div className="chips">
-                  {['اشرح لي الذكاء الاصطناعي ببساطة', 'اكتب لي كود بايثون لفرز قائمة', 'ما الفرق بين Groq و OpenRouter؟', 'لخّص هذا النص في 3 نقاط'].map((q) => (
-                    <button key={q} className="chip" onClick={() => sendCurrent(q)}>{q}</button>
-                  ))}
-                </div>
+                <h2>مرحباً بك في OmniAI — كيف أساعدك اليوم؟</h2>
               </div>
-            ) : current.messages.map((m, i) => (
-              m.compare ? (
-                <div key={i} className="compare-block">
-                  <div className="compare-head">⚔️ مقارنة بين {m.results.length} مزودين · {formatTokens(m.tokens || 0)} توكن</div>
-                  <div className="compare-grid">
-                    {(m.results || []).map((r, j) => (
-                      <div key={j} className={'compare-card' + (r.error ? ' failed' : '') + (r.fastest ? ' fastest' : '')}>
-                        <div className="compare-card-head">
-                          <b>{getProvider(r.provider).name}</b>
-                          {r.fastest && <span className="badge fast">⚡ الأسرع</span>}
-                          <span dir="ltr">{r.model || ''}</span>
+            ) : (
+              <>
+                {olderCount > 0 && (
+                  <div style={{ textAlign: 'center', marginBottom: 14 }}>
+                    <button className="btn ghost small" onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}>عرض رسائل أقدم ({olderCount} رسالة)</button>
+                  </div>
+                )}
+                {visibleMessages.map((m, vi) => {
+                  const i = current.messages.length - visibleMessages.length + vi;
+                  return m.compare ? (
+                    <div key={i} className="compare-block">
+                      <div className="compare-head">⚔️ مقارنة بين {m.results.length} مزودين · {formatTokens(m.tokens || 0)} توكن</div>
+                      <div className="compare-grid">
+                        {(m.results || []).map((r, j) => (
+                          <div key={j} className={'compare-card' + (r.error ? ' failed' : '') + (r.fastest ? ' fastest' : '')}>
+                            <div className="compare-card-head">
+                              <b>{getProvider(r.provider).name}</b>
+                              {r.fastest && <span className="badge fast">⚡ الأسرع</span>}
+                              <span dir="ltr">{r.model || ''}</span>
+                            </div>
+                            {r.error ? (
+                              <div className="note">⚠️ {r.error}</div>
+                            ) : (
+                              <>
+                                {renderMd(r.content)}
+                                {r.reasoning && (
+                                  <details className="think">
+                                    <summary>🧠 التفكير العميق — اضغط لعرض/إخفاء خطوات التفكير</summary>
+                                    <div style={{ marginTop: 6 }}>{renderMd(r.reasoning)}</div>
+                                  </details>
+                                )}
+                              </>
+                            )}
+                            <div className="compare-card-foot">
+                              <span>{formatTokens(r.tokens || 0)} توكن</span>
+                              <span>{Number(r.seconds || 0).toFixed(1)} ثانية</span>
+                              {r.via && <span>المسار: {r.via}</span>}
+                              {!r.error && <button onClick={() => copyText(r.content, 'cmp' + i + '-' + j)}>{copied === 'cmp' + i + '-' + j ? '✓ تم النسخ' : '📋 نسخ'}</button>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div key={i} className={'msg ' + m.role}>
+                      <div className={'avatar ' + (m.role === 'user' ? 'user' : 'ai')}>{m.role === 'user' ? '👤' : '✦'}</div>
+                      <div className="msg-body">
+                        <div className="msg-meta">
+                          <span>{m.role === 'user' ? 'أنت' : 'OmniAI'}</span>
+                          {m.provider && <span>المزود: {getProvider(m.provider).name} · {m.model}</span>}
+                          {m.via && <span>المسار: {m.via}</span>}
+                          <span>{formatTokens(m.tokens || estimateTokens(textOf(m)))} توكن</span>
                         </div>
-                        {r.error ? (
-                          <div className="note">⚠️ {r.error}</div>
+                        {m.route && m.role === 'user' && <div className="route-chip">تم التوجيه إلى: {ROUTE_LABELS[m.route] || m.route}</div>}
+                        {m.kind === 'image' ? (
+                          <>
+                            <img className="gen" src={m.imageUrl} alt={m.prompt || 'صورة مولّدة'} />
+                            {m.note && <div className="note blue" style={{ marginTop: 10 }}>{m.note}</div>}
+                            <div className="msg-actions">
+                              <a className="btn ghost small" href={m.imageUrl} download target="_blank" rel="noreferrer">⬇ تنزيل الصورة</a>
+                              <button onClick={() => copyText(m.imageUrl, 'img' + i)}>{copied === 'img' + i ? '✓ نُسخ الرابط' : 'نسخ رابط الصورة'}</button>
+                            </div>
+                          </>
                         ) : (
                           <>
-                            {renderMd(r.content)}
-                            {r.reasoning && (
-                              <details className="think">
+                            {renderMd(textOf(m))}
+                            {m.reasoning && (
+                              <details className="think" open={!!showThink[i]} onToggle={(e) => setShowThink((p) => ({ ...p, [i]: e.target.open }))}>
                                 <summary>🧠 التفكير العميق — اضغط لعرض/إخفاء خطوات التفكير</summary>
-                                <div style={{ marginTop: 6 }}>{renderMd(r.reasoning)}</div>
+                                <div style={{ marginTop: 6 }}>{renderMd(m.reasoning)}</div>
                               </details>
                             )}
+                            <div className="msg-actions">
+                              <button onClick={() => copyText(textOf(m), 'm' + i)}>{copied === 'm' + i ? '✓ تم النسخ' : '📋 نسخ'}</button>
+                              {m.role === 'assistant' && <button onClick={() => { setInput(textOf(m)); }}>✏️ استخدام كنص</button>}
+                            </div>
                           </>
                         )}
-                        <div className="compare-card-foot">
-                          <span>{formatTokens(r.tokens || 0)} توكن</span>
-                          <span>{Number(r.seconds || 0).toFixed(1)} ثانية</span>
-                          {r.via && <span>المسار: {r.via}</span>}
-                          {!r.error && <button onClick={() => copyText(r.content, 'cmp' + i + '-' + j)}>{copied === 'cmp' + i + '-' + j ? '✓ تم النسخ' : '📋 نسخ'}</button>}
-                        </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-              <div key={i} className={'msg ' + m.role}>
-                <div className={'avatar ' + (m.role === 'user' ? 'user' : 'ai')}>{m.role === 'user' ? '👤' : '✦'}</div>
-                <div className="msg-body">
-                  <div className="msg-meta">
-                    <span>{m.role === 'user' ? 'أنت' : 'OmniAI'}</span>
-                    {m.provider && <span>المزود: {getProvider(m.provider).name} · {m.model}</span>}
-                    {m.via && <span>المسار: {m.via}</span>}
-                    <span>{formatTokens(m.tokens || estimateTokens(textOf(m)))} توكن</span>
-                  </div>
-                  {renderMd(textOf(m))}
-                  {m.reasoning && (
-                    <details className="think" open={!!showThink[i]} onToggle={(e) => setShowThink((p) => ({ ...p, [i]: e.target.open }))}>
-                      <summary>🧠 التفكير العميق — اضغط لعرض/إخفاء خطوات التفكير</summary>
-                      <div style={{ marginTop: 6 }}>{renderMd(m.reasoning)}</div>
-                    </details>
-                  )}
-                  <div className="msg-actions">
-                    <button onClick={() => copyText(textOf(m), 'm' + i)}>{copied === 'm' + i ? '✓ تم النسخ' : '📋 نسخ'}</button>
-                    {m.role === 'assistant' && <button onClick={() => { setInput(textOf(m)); }}>✏️ استخدام كنص</button>}
-                  </div>
-                </div>
-              </div>
-              )
-            ))}
+                    </div>
+                  );
+                })}
+              </>
+            )}
             {loading && <div className="msg"><div className="avatar ai">✦</div><div className="msg-body"><div className="typing"><i /><i /><i /></div><span style={{ fontSize: 13, color: 'var(--muted)' }}>جارٍ التفكير…</span></div></div>}
             {error && <div className="note" style={{ borderColor: 'rgba(248,113,113,.5)', background: 'rgba(248,113,113,.08)' }}>⚠️ {error}</div>}
           </div>
@@ -742,22 +815,134 @@ export default function Home() {
               ))}
             </div>
           )}
+          <div className="composer-top">
+            <button className="model-pill-btn" onClick={() => setSheet('model')} aria-label="اختيار النموذج">{currentModelLabel} <span aria-hidden="true">⌄</span></button>
+            {deepThinking && <span className="mini-chip">🧠 تفكير عميق</span>}
+            {pendingTool && <span className="mini-chip">الأداة: {pendingTool === 'image' ? '🖼 توليد صورة' : '🎬 توليد فيديو'} <button onClick={() => setPendingTool(null)} aria-label="إلغاء الأداة">✕</button></span>}
+          </div>
           <div className="composer-row">
+            <button className="plus-btn" onClick={() => setSheet('tools')} title="إضافة أداة" aria-label="إضافة أداة">+</button>
             <textarea ref={composerRef} value={input} onChange={(e) => setInput(e.target.value)} onPaste={onPaste}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendCurrent(); } }}
-              placeholder="اكتب رسالتك… (Enter للإرسال، Shift+Enter لسطر جديد، الصق نصاً أو صورة بـ Ctrl+V)" />
-            <button className="btn ghost" onClick={() => fileRef.current?.click()} title="رفع ملفات" aria-label="رفع ملفات">📎</button>
+              aria-label="اكتب رسالتك" />
             <button className="send-btn" onClick={() => sendCurrent()} disabled={loading}>{loading ? '…' : 'إرسال'}</button>
           </div>
           <input ref={fileRef} type="file" multiple style={{ display: 'none' }} onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }} />
-          <div className="token-line">
-            <span>توكنات هذه الجلسة: <b>{formatTokens(current?.tokens || 0)}</b></span>
-            <span>توكنات اليوم: {formatTokens(daily.tokens)} / {formatTokens(planInfo.limit)}</span>
-            <span>صور اليوم: {daily.images} / {planInfo.images}</span>
-            <span>المفاتيح المحفوظة: {Object.values(keys).flat().length} مفتاحاً</span>
-          </div>
+          <input ref={fileImageOnlyRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }} />
         </div>
       </main>
+
+      {/* ورقة اختيار النموذج — بأسلوب Claude: بطاقة لكل مزود مع وصف وشارة وعلامة اختيار */}
+      {sheet === 'model' && (
+        <>
+          <div className="sheet-back" onClick={() => setSheet(null)} aria-hidden="true" />
+          <div className="sheet" role="dialog" aria-label="اختيار النموذج">
+            <div className="sheet-grip" />
+            <div className="sheet-head">
+              <h2>اختيار النموذج</h2>
+              <button className="sidebar-close" style={{ display: 'inline-flex' }} onClick={() => setSheet(null)} aria-label="إغلاق">✕</button>
+            </div>
+            <div className="model-list">
+              <button className={'model-card' + (providerId === 'auto' && !compareOn ? ' selected' : '')} onClick={() => { setProviderId('auto'); setModel(''); setCompareOn(false); setSheet(null); }}>
+                <span className="model-name">⚡ تلقائي</span>
+                <span className="model-badge">الأسرع</span>
+                <span className="model-desc">يختار أفضل مزود متاح، وينتقل للبديل تلقائياً عند نفاد الرصيد</span>
+                {providerId === 'auto' && !compareOn && <span className="model-check">✓</span>}
+              </button>
+              {PROVIDERS.map((p) => {
+                const hasKey = !p.needsKey || (keys[p.id] || []).some((k) => k.status !== 'exhausted') || (p.id === 'freellmapi' && flKeys.some((k) => k.status !== 'exhausted'));
+                const selected = providerId === p.id && !compareOn;
+                return (
+                  <button key={p.id} className={'model-card' + (selected ? ' selected' : '')} onClick={() => { setProviderId(p.id); setModel(''); setCompareOn(false); if (p.id === 'freellmapi' && !flKeys.length) { setSheet(null); setDrawer('freellmapi'); } }}>
+                    <span className="model-name">{p.name}</span>
+                    <span className="model-badge">{hasKey ? modelBadge(p) : 'يحتاج مفتاحاً'}</span>
+                    <span className="model-desc">{p.blurb}</span>
+                    {selected && <span className="model-check">✓</span>}
+                  </button>
+                );
+              })}
+              <button className={'model-card' + (compareOn ? ' selected' : '')} onClick={() => { if (compareOn) setCompareOn(false); else enableCompare(); }}>
+                <span className="model-name">⚔️ مقارنة</span>
+                <span className="model-badge">منافسة</span>
+                <span className="model-desc">نفس السؤال لعدة مزودين دفعة واحدة — والأسرع يظهر بشارة ⚡</span>
+                {compareOn && <span className="model-check">✓</span>}
+              </button>
+            </div>
+            {compareOn && (
+              <div className="compare-picker">
+                <span className="compare-picker-title">⚔️ المزودون المتنافسون:</span>
+                {PROVIDERS.filter((p) => p.id !== 'ollama' && p.id !== 'custom').map((p) => {
+                  const ok = isCompareEligible(p.id);
+                  const checked = compareProviders.includes(p.id);
+                  return (
+                    <label key={p.id} className={'cmp-chip' + (checked ? ' on' : '') + (ok ? '' : ' disabled')}>
+                      <input type="checkbox" checked={checked} disabled={!ok} onChange={() => toggleCompareProvider(p.id)} />
+                      {p.name}
+                      {!ok && <small> — أضف مفتاحاً</small>}
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+            {providerId === 'freellmapi' && !compareOn && (
+              <div className="field" style={{ marginTop: 12 }}>
+                <label>نموذج FreeLLMAPI (اتركه auto ليختار الراوتر)</label>
+                <input type="text" value={model} onChange={(e) => setModel(e.target.value)} placeholder="auto" dir="ltr" />
+              </div>
+            )}
+            {providerId !== 'auto' && providerId !== 'freellmapi' && !compareOn && provider.models.length > 1 && (
+              <div className="model-sub">
+                <span className="model-sub-title">النموذج:</span>
+                {provider.models.map((m) => (
+                  <button key={m} className={'model-sub-chip' + ((model || provider.models[0]) === m ? ' on' : '')} onClick={() => setModel(m)} dir="ltr">{m}</button>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ورقة "+" — كل الأدوات الحقيقية فقط، بأسلوب Claude */}
+      {sheet === 'tools' && (
+        <>
+          <div className="sheet-back" onClick={() => setSheet(null)} aria-hidden="true" />
+          <div className="sheet" role="dialog" aria-label="إضافة أداة">
+            <div className="sheet-grip" />
+            <div className="sheet-head">
+              <h2>إضافة إلى المحادثة</h2>
+              <button className="sidebar-close" style={{ display: 'inline-flex' }} onClick={() => setSheet(null)} aria-label="إغلاق">✕</button>
+            </div>
+            <div className="tool-list-sheet">
+              <button className="tool-row" onClick={() => chooseTool('image')}>
+                <span className="tool-icon">🖼</span>
+                <span className="tool-text"><b>توليد صورة</b><small>صورة من وصفك — DALL·E أو FLUX إن وُجد مفتاح، وإلا بديل مجاني</small></span>
+              </button>
+              <button className="tool-row" onClick={() => chooseTool('video')}>
+                <span className="tool-icon">🎬</span>
+                <span className="tool-text"><b>توليد فيديو</b><small>يحتاج مفتاحاً مدفوعاً (Replicate / Luma / Runway)</small></span>
+              </button>
+              <button className="tool-row" onClick={() => { setSheet(null); fileImageOnlyRef.current?.click(); }}>
+                <span className="tool-icon">📷</span>
+                <span className="tool-text"><b>إرفاق صورة</b><small>من معرض هاتفك — لتحليلها أو وصفها</small></span>
+              </button>
+              <button className="tool-row" onClick={() => { setSheet(null); fileRef.current?.click(); }}>
+                <span className="tool-icon">📁</span>
+                <span className="tool-text"><b>إرفاق ملف</b><small>نص أو PDF حتى 2MB — يُحلَّل مع رسالتك</small></span>
+              </button>
+              <button className="tool-row" onClick={() => chooseTool('deep')}>
+                <span className="tool-icon">🧠</span>
+                <span className="tool-text"><b>تفكير عميق</b><small>يفكّر خطوة بخطوة ويعرض خطوات تفكيره</small></span>
+                <span className={'switch' + (deepThinking ? ' on' : '')}><i /></span>
+              </button>
+              <button className="tool-row" onClick={() => chooseTool('compare')}>
+                <span className="tool-icon">⚔️</span>
+                <span className="tool-text"><b>مقارنة</b><small>نفس السؤال لعدة مزودين دفعة واحدة</small></span>
+                <span className={'switch' + (compareOn ? ' on' : '')}><i /></span>
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* درج جانبي: مفاتيح / صور / فيديو / إحصائيات / أسعار / إعدادات */}
       {drawer && (
@@ -771,17 +956,30 @@ export default function Home() {
 
             {drawer === 'freellmapi' && (<>
               <p>الراوتر يعمل على سحابة Railway على مدار الساعة — لا Termux ولا تثبيت على هاتفك. الطلبات تمر دائماً <b>عبر خادم الموقع</b> إلى الرابط العام للراوتر.</p>
-              <div className="note blue">الحالة: {flKey.trim() ? '✓ المفتاح الموحد محفوظ في متصفحك' : 'لم يُحفظ مفتاح موحد بعد — الصقه من لوحة الراوتر.'} · الرابط: <span dir="ltr">{flUrl || FL_DEFAULT_URL}</span></div>
+              <div className="note blue">المفاتيح الموحدة المحفوظة: <b>{flKeys.length}</b> · الرابط: <span dir="ltr">{flUrl || FL_DEFAULT_URL}</span></div>
               <div className="field"><label>رابط الراوتر</label><input value={flUrl} onChange={(e) => saveFlUrl(e.target.value)} dir="ltr" placeholder={FL_DEFAULT_URL} /></div>
-              <div className="field"><label>المفتاح الموحد (freellmapi-…)</label><input type="password" value={flKey} onChange={(e) => saveFlKey(e.target.value)} placeholder="freellmapi-…" dir="ltr" /></div>
+              <h3>مفاتيح FreeLLMAPI (تداول)</h3>
+              <p>أضف مفاتيح موحدة من عدة حسابات — عند نفاد رصيد مفتاح (401/429) ينتقل الموقع تلقائياً للمفتاح التالي، وتتداول الطلبات بينها دورياً.</p>
+              {flKeys.length === 0 && <p>لا مفاتيح بعد. انسخ المفتاح الموحد من صفحة Keys في لوحة الراوتر والصقه هنا.</p>}
+              {flKeys.map((k) => (
+                <div key={k.id} className="key-row">
+                  <span style={{ fontWeight: 700 }}>{k.label}</span>
+                  <code>••••{String(k.value).slice(-6)}</code>
+                  <span className={'badge' + (k.status === 'exhausted' ? ' exhausted' : '')}>{k.status === 'exhausted' ? 'مستنفد' : 'يعمل'}</span>
+                  {k.lastUsed && <small style={{ color: 'var(--muted)' }}>آخر استخدام: {new Date(k.lastUsed).toLocaleString('ar')}</small>}
+                  {k.lastError && <small style={{ color: 'var(--red)' }}>{k.lastError}</small>}
+                  <button className="btn danger small" onClick={() => setFlKeys((p) => p.filter((x) => x.id !== k.id))}>حذف</button>
+                </div>
+              ))}
+              <div className="field"><label>إضافة مفتاح موحد جديد (freellmapi-…)</label><input type="password" value={newFlKey} onChange={(e) => setNewFlKey(e.target.value)} placeholder="freellmapi-…" dir="ltr" /></div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button className="btn" onClick={testFreellmapi}>اختبار الاتصال</button>
-                <button className="btn ghost" onClick={() => { saveFlKey(''); saveFlUrl(FL_DEFAULT_URL); setFlTest('تم المسح — عاد الرابط إلى الافتراضي.'); }}>مسح</button>
+                <button className="btn" onClick={addFlKey}>إضافة المفتاح</button>
+                <button className="btn ghost" onClick={testFreellmapi}>اختبار كل المفاتيح</button>
                 <button className="btn ghost" onClick={() => { setDrawer(null); setGuideOpen(true); }}>📖 دليل FreeLLMAPI</button>
               </div>
               {flTest && <div className="note blue">{flTest}</div>}
               <h3>كيف تحصل على المفتاح الموحد؟</h3>
-              <p>من <a href={FL_DASHBOARD_URL} target="_blank" rel="noreferrer">لوحة الراوتر</a> (صفحة Keys): أضف مفاتيح مزوديك أولاً (Groq وغيره)، ثم انسخ المفتاح الموحد من أعلى الصفحة والصقه هنا. يُحفظ في متصفحك فقط.</p>
+              <p>من <a href={FL_DASHBOARD_URL} target="_blank" rel="noreferrer">لوحة الراوتر</a> (صفحة Keys): أضف مفاتيح مزوديك أولاً (Groq وغيره)، ثم انسخ المفتاح الموحد من أعلى الصفحة والصقه هنا. يمكنك تكرار ذلك من حسابات راوتر متعددة — كل مفتاح يُحفظ في متصفحك فقط.</p>
               <h3>ملاحظة صادقة</h3>
               <div className="note">«10.1 مليار توكن» = مجموع الحصص المجانية لكل المزودين الـ 87 في كتالوج FreeLLMAPI، وليست رصيداً يمنحه لك أحد. كل مزود له حسابه ومفتاحه وحده الخاص. الكتالوج المجاني لقطة شهرية تتأخر 30 يوماً؛ الكتالوج الحي Premium بـ 19$/سنة (أو 49$ مدى الحياة). المشروع «للتجربة الشخصية فقط».</div>
             </>)}
@@ -816,7 +1014,7 @@ export default function Home() {
 
 
             {drawer === 'image' && (<>
-              <p>بدون مفتاح: Pollinations المجاني. مع مفتاح OpenAI: DALL·E 3.</p>
+              <p>بمفتاح محفوظ: DALL·E 3 أو FLUX بجودة عالية. بدون مفتاح: بديل مجاني بجودة أقل (Pollinations).</p>
               <div className="field"><label>وصف الصورة</label><textarea value={imgPrompt} onChange={(e) => setImgPrompt(e.target.value)} rows={3} placeholder="مدينة مستقبلية عند الغروب، أسلوب سينمائي…" /></div>
               <div className="field"><label>الحجم</label><select value={imgSize} onChange={(e) => setImgSize(e.target.value)}><option>1024x1024</option><option>1024x1792</option><option>1792x1024</option></select></div>
               <button className="btn" onClick={genImage} disabled={imgLoading}>{imgLoading ? 'جارٍ التوليد…' : 'توليد الصورة'}</button>
@@ -828,7 +1026,7 @@ export default function Home() {
                   <a className="btn ghost small" href={imgResult.url} download target="_blank" rel="noreferrer">⬇ تنزيل الصورة</a>
                   <button className="btn ghost small" onClick={() => copyText(imgResult.url, 'imgurl')}>{copied === 'imgurl' ? '✓ نُسخ الرابط' : 'نسخ رابط الصورة'}</button>
                 </div>
-                <p>تم التوليد عبر: {imgResult.via === 'pollinations' ? 'Pollinations (مجاني)' : imgResult.via}</p>
+                <p>تم التوليد عبر: {imgResult.via === 'pollinations' ? 'Pollinations (مجاني — جودة أقل)' : imgResult.via === 'freellmapi' ? 'FreeLLMAPI Router' : getProvider(imgResult.via).name}</p>
               </>)}
             </>)}
 
@@ -856,18 +1054,23 @@ export default function Home() {
               {Object.keys(stats.per).length === 0 ? <p>لا ردود بعد — أرسل أول رسالة وستظهر التفاصيل هنا.</p> : Object.entries(stats.per).map(([p, e]) => <div key={p} className="key-row"><span style={{ flex: 1 }}>{(PROVIDERS.find((x) => x.id === p)?.name || p)}</span><b>{e.replies} رداً · {formatTokens(e.tokens)} توكن</b></div>)}
               <h3>حالة المفاتيح</h3>
               {Object.values(keyStatus).every((k) => k.total === 0)
-                ? <p>لا مفاتيح محفوظة بعد — أضف مفتاح Groq مجاني من «ابدأ الآن» أو من «مدير المفاتيح»، أو جرّب Pollinations بدون مفتاح.</p>
+                ? <p>لا مفاتيح محفوظة بعد — أضف مفتاح Groq مجاني من «مدير المفاتيح»، أو جرّب Pollinations بدون مفتاح.</p>
                 : Object.entries(keyStatus).filter(([, k]) => k.total > 0).map(([pid, k]) => (
                   <div key={pid} className="key-row"><span style={{ flex: 1 }}>{k.name}</span><b>{k.active} نشط · {k.exhausted} مستنفد</b></div>
                 ))}
+              <h3>مفاتيح FreeLLMAPI الموحدة</h3>
+              {flKeys.length === 0 ? <p>لا مفاتيح موحدة بعد.</p> : flKeys.map((k) => (
+                <div key={k.id} className="key-row"><span style={{ flex: 1 }}>{k.label} — ••••{String(k.value).slice(-6)}</span><b>{k.status === 'exhausted' ? 'مستنفد' : 'يعمل'}</b></div>
+              ))}
               <h3>الأدوات — ماذا يحتاج كل منها؟</h3>
               <div className="tool-list">
                 <div className="key-row"><span style={{ flex: 1 }}>🤖 محادثة</span><span>مفتاح مجاني (Groq) أو بدون مفتاح عبر Pollinations</span></div>
-                <div className="key-row"><span style={{ flex: 1 }}>🖼 توليد الصور</span><span>مجاني عبر Pollinations، أو DALL·E 3 بمفتاح OpenAI</span></div>
+                <div className="key-row"><span style={{ flex: 1 }}>🖼 توليد الصور</span><span>DALL·E أو FLUX بمفتاح، أو بديل مجاني بجودة أقل</span></div>
                 <div className="key-row"><span style={{ flex: 1 }}>🎬 توليد الفيديو</span><span>يحتاج مفتاحاً مدفوعاً (Replicate / Luma / Runway)</span></div>
-                <div className="key-row"><span style={{ flex: 1 }}>🧠 تفكير عميق</span><span>يعمل مع أي مزود — فعّله من أعلى المحادثة</span></div>
+                <div className="key-row"><span style={{ flex: 1 }}>🧠 تفكير عميق</span><span>يعمل مع أي مزود — فعّله من ورقة «+»</span></div>
+                <div className="key-row"><span style={{ flex: 1 }}>⚔️ مقارنة</span><span>نفس السؤال لعدة مزودين — من ورقة «+» أو ورقة النموذج</span></div>
                 <div className="key-row"><span style={{ flex: 1 }}>📁 رفع ملفات وتحليلها</span><span>نصوص حتى 2MB؛ ملف PDF يُقبل دون استخراج نصه</span></div>
-                <div className="key-row"><span style={{ flex: 1 }}>📋 نسخ وتصدير</span><span>نسخ أي رد أو تصدير الجلسة .md / .json — مجاني</span></div>
+                <div className="key-row"><span style={{ flex: 1 }}>📋 نسخ وتصدير</span><span>نسخ أي رد من زر النسخ تحته، أو تصدير الجلسة .md / .json من الإعدادات</span></div>
               </div>
               <h3>الخطة والحدود</h3>
               <p>خطتك الحالية: <b>{planInfo.name}</b> — حد اليوم {formatTokens(planInfo.limit)} توكن، {planInfo.images} صورة.</p>
@@ -895,6 +1098,12 @@ export default function Home() {
               <select value={plan} onChange={(e) => { setPlan(e.target.value); try { localStorage.setItem('omni_plan', e.target.value); } catch {} }}>
                 {Object.entries(PLANS).map(([id, p]) => <option key={id} value={id}>{p.name} — {p.price}</option>)}
               </select>
+              <h3>تصدير الجلسة الحالية</h3>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button className="btn ghost small" onClick={() => copyText(current?.messages.map((m) => (m.role === 'user' ? 'أنت: ' : 'OmniAI: ') + textOf(m)).join('\n\n') || '', 'all')}>{copied === 'all' ? '✓ تم النسخ' : '📋 نسخ الجلسة'}</button>
+                <button className="btn ghost small" onClick={() => exportSession('md')}>⬇ تصدير .md</button>
+                <button className="btn ghost small" onClick={() => exportSession('json')}>⬇ تصدير .json</button>
+              </div>
               <h3>نقطة نهاية مخصصة (للمزود «نقطة نهاية مخصصة» فقط)</h3>
               <input value={customBase} onChange={(e) => saveCustomBase(e.target.value)} dir="ltr" placeholder="https://example.com/v1" />
               <p style={{ fontSize: 13 }}>راوتر FreeLLMAPI مستضاف على Railway ويعمل على مدار الساعة — <a href={FL_DASHBOARD_URL} target="_blank" rel="noreferrer">لوحة الراوتر</a> · إعداداته في القائمة الجانبية ← «إعدادات FreeLLMAPI». المشروع مفتوح المصدر على <a href="https://github.com/tashfeenahmed/freellmapi" target="_blank" rel="noreferrer">GitHub</a>.</p>
@@ -939,8 +1148,8 @@ export default function Home() {
               <li><b>الراوتر جاهز أصلاً</b> — مستضاف على <a href={FL_DASHBOARD_URL} target="_blank" rel="noreferrer">Railway</a>. لا تثبيت ولا تشغيل من جهتك.</li>
               <li><b>أضف مفاتيح مزوديك في لوحة الراوتر</b> (صفحة Keys) — ابدأ بمفتاح Groq المجاني من <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer">console.groq.com/keys</a>، ثم إن أردت: <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">OpenRouter</a>، <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noreferrer">DeepSeek</a>، <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noreferrer">Hugging Face</a>، <a href="https://console.mistral.ai/api-keys" target="_blank" rel="noreferrer">Mistral</a>، <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">Google AI Studio</a>.</li>
               <li><b>انسخ المفتاح الموحد</b> (freellmapi-…) من أعلى صفحة Keys في اللوحة.</li>
-              <li><b>الصقه في الموقع:</b> القائمة الجانبية ← «إعدادات FreeLLMAPI» ← خانة «المفتاح الموحد» ← «اختبار الاتصال». يُحفظ في متصفحك فقط.</li>
-              <li><b>اختر المزود «FreeLLMAPI Router (سحابي)»</b> من أعلى المحادثة، اترك النموذج «auto» (أو اكتب اسم نموذج)، وأرسل رسالتك.</li>
+              <li><b>الصقه في الموقع:</b> القائمة الجانبية ← «إعدادات FreeLLMAPI» ← «إضافة مفتاح موحد جديد» ← «اختبار كل المفاتيح». يُحفظ في متصفحك فقط. يمكنك إضافة مفاتيح موحدة من عدة حسابات — عند نفاد رصيد مفتاح ينتقل الموقع تلقائياً للمفتاح التالي.</li>
+              <li><b>اختر المزود «FreeLLMAPI Router (سحابي)»</b> من ورقة اختيار النموذج (اضغط اسم النموذج فوق صندوق الكتابة)، اترك النموذج «auto» (أو اكتب اسم نموذج)، وأرسل رسالتك.</li>
             </ol>
             <div className="note">ملاحظة صادقة: «10.1 مليار توكن / 87 مزوداً» هي مجموع الحصص المجانية لكل المزودين معاً، وليست رصيداً يمنحه لك أحد — كل مزود يحتاج حسابه ومفتاحه وحدوده. الكتالوج المجاني لقطة شهرية تتأخر 30 يوماً؛ الكتالوج الحي Premium بـ 19$/سنة (أو 49$ مدى الحياة). المشروع «للتجربة الشخصية فقط».</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
