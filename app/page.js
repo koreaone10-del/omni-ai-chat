@@ -978,6 +978,26 @@ export default function Home() {
         }
         updateAgent({ steps: steps.map((s) => ({ ...s })) });
       }
+      // مراجعة ذاتية للكود بأسلوب AlphaCode — لا إعلان إنجاز قبل التحقق:
+      // إن كانت المهمة برمجية (النطاق البارد) أو ظهر كود في النتائج، يراجع
+      // الوكيل عمله بعين ناقد قبل الخلاصة، ويُسجَّل الحكم في الخطوات.
+      const rCfg = agentCfg.router || {};
+      const isCodeTask = routeTemperature(task, { bands: { cold: rCfg.cold ?? 0.2, warm: rCfg.warm ?? 0.6, hot: rCfg.hot ?? 0.95 }, coldWords: rCfg.coldWords, hotWords: rCfg.hotWords }).band === 'cold'
+        || /```/.test(ctxNotes.join('\n'));
+      if (isCodeTask && ctxNotes.length) {
+        try {
+          const review = await chatAgentOnce([
+            { role: 'user', content: 'راجع الكود ونتائج الخطوات التالية بعين ناقد (أسلوب AlphaCode — لا تعلن الإنجاز قبل التحقق): هل يعمل الكود؟ هل توجد أخطاء أو ثغرات أمنية أو حالات حدّية؟ اكتب حكماً من سطرين: "يعمل ✓" أو قائمة الأخطاء بدقة.\n\n' + ctxNotes.join('\n').slice(0, 4000) }
+          ], { sys: agentSystemPrompt(task, ledger()), userText: task });
+          totalTokens += review.tokens;
+          ctxNotes.push('- مراجعة ذاتية (AlphaCode): ' + String(review.content || '').slice(0, 1000));
+          steps.push({ label: 'مراجعة ذاتية للكود (AlphaCode)', tool: 'chat', status: 'done', detail: String(review.content || '').replace(/\s+/g, ' ').slice(0, 160) });
+          updateAgent({ steps: steps.map((s) => ({ ...s })) });
+          agentLog('chat', 'مراجعة ذاتية للكود', 'done', String(review.content || '').slice(0, 120));
+        } catch (e) {
+          agentLog('chat', 'مراجعة ذاتية للكود', 'failed', String(e.message || e).slice(0, 140));
+        }
+      }
       // الخلاصة النهائية (بث حي)
       const fin = await chatAgentOnce([
         { role: 'user', content: 'المهمة: ' + task + '\n\nنتائج الخطوات:\n' + (ctxNotes.join('\n') || 'لا نتائج.') + '\n\nاكتب الإجابة النهائية المنظمة للمستخدم بالعربية، مع ذكر ما فشل إن وُجد.' }
@@ -1319,11 +1339,11 @@ export default function Home() {
       const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody) });
       const ct = res.headers.get('content-type') || '';
       if (ct.includes('text/event-stream')) {
-        let content = ''; let reasoning = ''; let usage = null; let modelUsed = null; let providerUsed = null; let keyIndex = null;
+        let content = ''; let reasoning = ''; let usage = null; let modelUsed = null; let providerUsed = null; let keyIndex = null; let fallbackFrom = null;
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buf = '';
-        const applyUpdate = () => updateSession(current.id, (s) => ({ ...s, messages: s.messages.map((m) => (m.id === streamId ? { ...m, content, reasoning, model: modelUsed || m.model, provider: providerUsed || m.provider } : m)) }));
+        const applyUpdate = () => updateSession(current.id, (s) => ({ ...s, messages: s.messages.map((m) => (m.id === streamId ? { ...m, content, reasoning, model: modelUsed || m.model, provider: providerUsed || m.provider, fallbackFrom: fallbackFrom || m.fallbackFrom || null } : m)) }));
         let streamError = null;
         outer: while (true) {
           const { done, value } = await reader.read();
@@ -1337,7 +1357,7 @@ export default function Home() {
               let ev; try { ev = JSON.parse(line.slice(5).trim()); } catch { continue; }
               if (ev.type === 'content' && ev.delta) { content += ev.delta; applyUpdate(); }
               else if (ev.type === 'reasoning' && ev.delta) { reasoning += ev.delta; applyUpdate(); }
-              else if (ev.type === 'done') { usage = ev.usage; modelUsed = ev.modelUsed; providerUsed = ev.providerUsed; keyIndex = ev.keyIndex; }
+              else if (ev.type === 'done') { usage = ev.usage; modelUsed = ev.modelUsed; providerUsed = ev.providerUsed; keyIndex = ev.keyIndex; fallbackFrom = ev.fallbackFrom || null; }
               else if (ev.type === 'error') { streamError = ev.error || 'خطأ أثناء البث.'; break outer; }
             }
           }
@@ -2070,6 +2090,7 @@ export default function Home() {
                         <div className="msg-meta">
                           <span>{m.role === 'user' ? 'أنت' : 'CHIBANI AI'}</span>
                           {m.provider && <span>المزود: {getProvider(m.provider).name} · {m.model}</span>}
+                          {m.fallbackFrom && <span>⚡ {tt('fallbackNote')} {getProvider(m.provider).name} · <span dir="ltr">{m.model}</span></span>}
                           {m.via && <span>المسار: {m.via}</span>}
                           <span>{formatTokens(m.tokens || estimateTokens(textOf(m)))} توكن</span>
                         </div>
@@ -2123,6 +2144,7 @@ export default function Home() {
                             {m.content ? <div className="agent-result">{renderMd(m.content, previewActions)}</div> : null}
                             <div className="msg-actions">
                               {m.content && <button onClick={() => copyText(m.content, 'ag' + i)}>{copied === 'ag' + i ? '✓ تم النسخ' : '📋 نسخ'}</button>}
+                              {m.status === 'failed' && <button disabled={agentRunning} onClick={() => { setProviderId('freellmapi'); setModel('auto'); runAgentTask(m.task); }}>🔄 {tt('agentRetryWorking')}</button>}
                             </div>
                           </div>
                         ) : (
@@ -2161,7 +2183,7 @@ export default function Home() {
               </>
             )}
             {loading && !streamingId && <div className="msg"><div className="avatar ai">✦</div><div className="msg-body">{deepThinking ? <div className="thinking-live">🧠 {tt('thinkingNow')}<br /><span>أحلّل سؤالك خطوة بخطوة قبل كتابة الإجابة النهائية…</span></div> : <><div className="typing"><i /><i /><i /></div><span style={{ fontSize: 13, color: 'var(--muted)' }}>جارٍ التفكير…</span></>}</div></div>}
-            {error && <div className="note" style={{ borderColor: 'rgba(248,113,113,.5)', background: 'rgba(248,113,113,.08)' }}>⚠️ {error}</div>}
+            {error && <div className="note" style={{ borderColor: 'rgba(248,113,113,.5)', background: 'rgba(248,113,113,.08)' }}>⚠️ {error}{error.includes('مزود') && <><br /><button className="btn small" style={{ marginTop: 8 }} onClick={() => { setProviderId('freellmapi'); setModel('auto'); setError(''); }}>{tt('tryWorkingModel')}</button></>}</div>}
           </div>
         </div>
 
@@ -2343,7 +2365,7 @@ export default function Home() {
               {isFL && (
                 <div className="note blue" style={{ marginTop: 0 }}>
                   {flCatalogLoading ? 'جارٍ تحميل الكتالوج الكامل…' : flCatalog ? (
-                    <>📚 {flCatalog.totalModels} نموذج · {flCatalog.totalEndpoints} نقطة نهاية · المصدر: {flCatalog.source === 'live' ? 'حي من freellmapi.co' : 'لقطة محفوظة'} (نسخة {flCatalog.version || '—'})<br />{tt('catalogNote')}</>
+                    <>📚 {flCatalog.totalModels} نموذج · {flCatalog.totalEndpoints} نقطة نهاية · المصدر: {flCatalog.source === 'live' ? 'حي من freellmapi.co' : 'لقطة محفوظة'} (نسخة {flCatalog.version || '—'})<br />{tt('catalogNote')}<br />{tt('routerGroqNote')}</>
                   ) : 'تعذّر تحميل الكتالوج الكامل — تُعرض النماذج الأساسية فقط.'}
                 </div>
               )}
@@ -2351,6 +2373,10 @@ export default function Home() {
                 {rows.length === 0 && <p style={{ color: 'var(--muted)', fontSize: 13.5 }}>لا نتائج مطابقة لبحثك.</p>}
                 {rows.map((m) => {
                   const on = cur === m.id;
+                  // v2.3 — الراوتر يحمل مفتاح Groq وحده: النماذج التي يخدمها Groq
+                  // في الكتالوج تعمل الآن، وغيرها يحتاج مفتاح مزود في الراوتر.
+                  const worksNow = isFL && !!catalogModels && (m.providers || []).includes('groq');
+                  const tag = m.id === 'auto' ? 'تلقائي' : (isFL && catalogModels) ? (worksNow ? tt('worksNow') : tt('routerKeyNote')) : hasKey ? (p.id === 'groq' ? 'الأسرع' : p.needsKey ? 'بمفتاحك' : 'مجاني') : 'يحتاج مفتاحاً';
                   return (
                     <button key={m.id} className={'model-row' + (on ? ' on' : '')} onClick={() => { setProviderId(p.id); setModel(m.id); setCompareOn(false); setModelsSheet(null); if (p.id === 'freellmapi' && !flKeys.length && m.id !== 'auto') setDrawer('freellmapi'); }}>
                       <span className="model-row-main">
@@ -2365,7 +2391,7 @@ export default function Home() {
                           {m.vision ? <span className="mini-badge vision">👁 رؤية</span> : null}
                         </span>
                       </span>
-                      <span className="model-row-tag">{m.id === 'auto' ? 'تلقائي' : hasKey ? (p.id === 'groq' ? 'الأسرع' : p.needsKey ? 'بمفتاحك' : 'مجاني') : 'يحتاج مفتاحاً'}</span>
+                      <span className="model-row-tag">{tag}</span>
                       {on && <span className="model-check">✓</span>}
                     </button>
                   );
@@ -2675,11 +2701,23 @@ export default function Home() {
                   </div>
                   <p className="hub-hint">{svc.hint}</p>
                   {svc.id === 'gmail' && <div className="note">{tt('gmailScopeNote')}</div>}
-                  <div className="field"><input type="password" value={conn[svc.id] || ''} onChange={(e) => setConn((p) => ({ ...p, [svc.id]: e.target.value }))} placeholder="الصق التوكن هنا…" dir="ltr" autoComplete="off" /></div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <button className="btn ghost small" onClick={() => testConnection(svc.id)} disabled={connStatus[svc.id] === 'testing'}>{connStatus[svc.id] === 'testing' ? 'جارٍ الاختبار…' : '🔗 ' + tt('testConnection')}</button>
-                    {conn[svc.id] && <button className="btn danger small" onClick={() => { setConn((p) => ({ ...p, [svc.id]: '' })); setConnStatus((p) => ({ ...p, [svc.id]: undefined })); }}>حذف التوكن</button>}
-                  </div>
+                  {svc.kind === 'info' ? (
+                    <>
+                      <p style={{ fontSize: 13.5, color: 'var(--muted)' }}>{svc.setup}</p>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <button className="btn ghost small" onClick={() => copyText('curl -fsSL https://raw.githubusercontent.com/dragonked2/alphacode/main/scripts/install.sh | bash', 'alphacode-install')}>{copied === 'alphacode-install' ? '✓ نُسخ الأمر' : '📋 نسخ أمر التثبيت'}</button>
+                        {svc.url && <a className="btn ghost small" href={svc.url} target="_blank" rel="noreferrer">🌐 الموقع الرسمي</a>}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="field"><input type="password" value={conn[svc.id] || ''} onChange={(e) => setConn((p) => ({ ...p, [svc.id]: e.target.value }))} placeholder="الصق التوكن هنا…" dir="ltr" autoComplete="off" /></div>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <button className="btn ghost small" onClick={() => testConnection(svc.id)} disabled={connStatus[svc.id] === 'testing'}>{connStatus[svc.id] === 'testing' ? 'جارٍ الاختبار…' : '🔗 ' + tt('testConnection')}</button>
+                        {conn[svc.id] && <button className="btn danger small" onClick={() => { setConn((p) => ({ ...p, [svc.id]: '' })); setConnStatus((p) => ({ ...p, [svc.id]: undefined })); }}>حذف التوكن</button>}
+                      </div>
+                    </>
+                  )}
                 </div>
               ))}
               {connMsg && <div className="note blue">{connMsg}</div>}

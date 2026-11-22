@@ -231,6 +231,11 @@ img.gen{max-width:100%;border-radius:14px;border:1px solid var(--border);margin-
     padding-top:calc(14px + env(safe-area-inset-top,0px));
   }
   .sidebar.open{transform:translateX(0)}
+  /* LTR (إنجليزية وغيرها): الشريط مثبّت على اليسار، فإخفاؤه يكون بإزاحة -X
+     نحو اليسار — الإزاحة +X كانت تترك شريطاً ظاهراً على حافة الشاشة اليمنى
+     في الهواتف الضيقة لأنها تُقاس من الحافة اليسرى (v2.3). */
+  [dir="ltr"] .sidebar{transform:translateX(-105%)}
+  [dir="ltr"] .sidebar.open{transform:translateX(0)}
   .backdrop{display:block}
   .sidebar-close{display:inline-flex}
   .menu-btn{display:inline-flex}

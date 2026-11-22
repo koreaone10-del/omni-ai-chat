@@ -139,7 +139,7 @@ async function pipeUpstreamToSse(r, emit, meta) {
     }
     buf += decoder.decode();
     for (const line of buf.split('\n')) handleLine(line.trim());
-    emit({ type: 'done', usage, modelUsed, providerUsed: meta.providerUsed, keyIndex: meta.keyIndex, fallback: !!meta.fallback });
+    emit({ type: 'done', usage, modelUsed, providerUsed: meta.providerUsed, keyIndex: meta.keyIndex, fallback: !!meta.fallback, fallbackFrom: meta.fallbackFrom || null });
     return true;
   }
   // المزود تجاهل stream:true وردّ JSON كاملاً — نبثّه مقطّعاً حتى يعمل العميل بالطريقة نفسها.
@@ -149,7 +149,7 @@ async function pipeUpstreamToSse(r, emit, meta) {
   const reasoning = choice?.reasoning_content || data.choices?.[0]?.reasoning || null;
   if (reasoning) emit({ type: 'reasoning', delta: reasoning });
   for (const c of (content.match(/[\s\S]{1,60}/g) || [])) emit({ type: 'content', delta: c });
-  emit({ type: 'done', usage: data.usage || null, modelUsed: data.model || meta.model, providerUsed: meta.providerUsed, keyIndex: meta.keyIndex, fallback: !!meta.fallback });
+  emit({ type: 'done', usage: data.usage || null, modelUsed: data.model || meta.model, providerUsed: meta.providerUsed, keyIndex: meta.keyIndex, fallback: !!meta.fallback, fallbackFrom: meta.fallbackFrom || null });
   return true;
 }
 
@@ -160,14 +160,24 @@ async function handleStream({ messages, providerId, model, apiKeys, customBase, 
     ? String(systemPrompt).trim() + '\n' + buildLangRule(lang)
     : buildSystemExtra({ deepThinking, lang, skills });
   const attempts = [];
-  const providerIds = providerId === 'auto' ? AUTO_ORDER : [providerId];
+  // v2.3 — استقلالية الوكيل والمحادثة: إن فشل المزود المختار، يُجرَّب باقي
+  // المزودين تلقائياً (لا موت على اختيار واحد)، ويُبلَّغ العميل بالمزود الفعلي.
+  // مسار JSON (وضع المقارنة) يبقى صارماً بمزود واحد — كل بطاقة مزودها.
+  const requested = { provider: providerId, model: model || null };
+  const providerIds = providerId === 'auto' ? AUTO_ORDER : [providerId, ...AUTO_ORDER.filter((p) => p !== providerId)];
 
   for (const pid of providerIds) {
     const provider = getProvider(pid);
     if (provider.videoOnly) { attempts.push({ provider: pid, error: 'هذا المزود للفيديو فقط — لا يقدم محادثة نصية.' }); continue; }
-    const base = pid === 'custom' ? (customBase || provider.baseURL) : (customBase && providerId !== 'auto' ? customBase : provider.baseURL);
+    // رابط الأساس يخص المزود نفسه فقط: رابط الراوتر المخصص لا يُستعمل لمزود آخر
+    // عند التراجع (كان يُرسل خطأً كأساس لـ Groq وغيره).
+    const base = pid === 'custom' ? (customBase || provider.baseURL)
+      : pid === 'freellmapi' ? (customBase || provider.baseURL)
+      : provider.baseURL;
     if (!base) { attempts.push({ provider: pid, error: 'لا يوجد رابط أساس لهذا المزود.' }); continue; }
-    const mdl = model && providerId !== 'auto' ? model : provider.models[0];
+    const mdl = model && providerId !== 'auto' && pid === providerId ? model : provider.models[0];
+    // تراجع عن المزود/النموذج المطلوب؟ (يُبلَّغ للعميل في حدث done)
+    const fellBack = requested.provider !== 'auto' && (pid !== requested.provider || mdl !== requested.model);
 
     // Pollinations نص مجاني بدون مفتاح — GET كامل، ثم يُبث مقطّعاً.
     if (pid === 'pollinations') {
@@ -179,7 +189,7 @@ async function handleStream({ messages, providerId, model, apiKeys, customBase, 
         const text = await r.text();
         return sseResponse(async (emit) => {
           for (const c of (text.match(/[\s\S]{1,60}/g) || [])) emit({ type: 'content', delta: c });
-          emit({ type: 'done', usage: { total_tokens: estimateTokens(text) }, modelUsed: mdl, providerUsed: 'pollinations', keyIndex: 0 });
+          emit({ type: 'done', usage: { total_tokens: estimateTokens(text) }, modelUsed: mdl, providerUsed: 'pollinations', keyIndex: 0, fallbackFrom: fellBack ? { provider: requested.provider, model: requested.model } : null });
         });
       } catch (e) { attempts.push({ provider: pid, error: String(e.message || e) }); continue; }
     }
@@ -187,36 +197,40 @@ async function handleStream({ messages, providerId, model, apiKeys, customBase, 
     const keys = orderKeys(apiKeys[pid] || []);
     if (provider.needsKey && keys.length === 0) {
       attempts.push({ provider: pid, error: 'لا يوجد مفتاح لهذا المزود. أضف مفتاحاً من مدير المفاتيح.' });
-      if (providerId !== 'auto') break;
       continue;
     }
     const keyList = keys.length ? keys : [{ value: '', index: 0, status: 'active' }];
+    // الراوتر: إن رفض النموذج المختار (غير متاح بمفاتيح الراوتر الحالية)،
+    // جرّب 'auto' على الراوتر نفسه قبل الانتقال لمزود آخر.
+    const tryModels = pid === 'freellmapi' && mdl && mdl !== 'auto' ? [mdl, 'auto'] : [mdl];
 
     for (const k of keyList) {
-      try {
-        const built = buildChatPayload({ model: mdl, systemContent, messages, stream: true, sampling });
-        const { r, fallback } = await postChatCompletion(base.replace(/\/$/, '') + '/chat/completions', {
-          'Content-Type': 'application/json', ...(k.value ? { Authorization: 'Bearer ' + k.value } : {})
-        }, built, 120000);
-        if (!r.ok) {
-          const txt = await r.text().catch(() => '');
-          const err = new Error(`المزود ردّ بالحالة ${r.status}: ${txt.slice(0, 200)}`);
-          err.status = r.status;
-          throw err;
+      for (const m of tryModels) {
+        try {
+          const built = buildChatPayload({ model: m, systemContent, messages, stream: true, sampling });
+          const { r, fallback } = await postChatCompletion(base.replace(/\/$/, '') + '/chat/completions', {
+            'Content-Type': 'application/json', ...(k.value ? { Authorization: 'Bearer ' + k.value } : {})
+          }, built, 120000);
+          if (!r.ok) {
+            const txt = await r.text().catch(() => '');
+            const err = new Error(`المزود ردّ بالحالة ${r.status}: ${txt.slice(0, 200)}`);
+            err.status = r.status;
+            throw err;
+          }
+          const fellBackModel = requested.provider !== 'auto' && (pid !== requested.provider || m !== requested.model);
+          const meta = { providerUsed: pid, keyIndex: k.index, model: m, fallback, fallbackFrom: fellBackModel ? { provider: requested.provider, model: requested.model } : null };
+          return sseResponse((emit) => pipeUpstreamToSse(r, emit, meta));
+        } catch (e) {
+          attempts.push({ provider: pid, model: m, keyIndex: k.index, error: String(e.message || e), status: e.status || null });
+          continue;
         }
-        const meta = { providerUsed: pid, keyIndex: k.index, model: mdl, fallback };
-        return sseResponse((emit) => pipeUpstreamToSse(r, emit, meta));
-      } catch (e) {
-        attempts.push({ provider: pid, keyIndex: k.index, error: String(e.message || e), status: e.status || null });
-        if (e.status && !isRetryableStatus(e.status) && providerId !== 'auto') break;
-        continue;
       }
     }
-    if (providerId !== 'auto') break;
   }
 
+  const firstErr = attempts.find((a) => a.error);
   return NextResponse.json({
-    error: 'تعذّر الحصول على رد من أي مزود. تحقق من مفاتيحك واتصالك، ثم جرّب مزوداً آخر.',
+    error: 'تعذّر الحصول على رد من أي مزود.' + (firstErr ? ' السبب: ' + String(firstErr.error).slice(0, 160) : '') + ' جرّب نموذجاً يعمل (auto أو Groq).',
     attempts,
     hint: 'أسرع بداية مجانية: أنشئ مفتاح Groq مجانياً من console.groq.com/keys وأضفه من مدير المفاتيح، أو اختر Pollinations (بدون مفتاح).'
   }, { status: 502 });
