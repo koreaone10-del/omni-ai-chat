@@ -483,16 +483,16 @@ export default function Home() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'فشل توليد الصورة.');
-      const viaName = data.via === 'pollinations' ? 'Pollinations' : data.via === 'freellmapi' ? 'FreeLLMAPI Router' : getProvider(data.via).name;
+      const viaName = data.via === 'huggingface-space' ? 'Hugging Face FLUX (مجاني بدون مفتاح)' : data.via === 'freellmapi' ? 'FreeLLMAPI Router' : getProvider(data.via).name;
       const imgMsg = {
         role: 'assistant', kind: 'image', imageUrl: data.url, prompt,
-        via: viaName + (data.free ? ' — بديل مجاني (جودة أقل)' : ''),
+        via: viaName + (data.free ? ' — مجاني بدون مفتاح' : ''),
         note: data.note || null, tokens: 0
       };
       updateSession(current.id, (s) => ({ ...s, messages: [...s.messages, imgMsg] }));
       setDaily((d) => ({ ...d, images: d.images + 1 }));
     } catch (e) {
-      const errMsg = { role: 'assistant', content: 'تعذّر توليد الصورة: ' + String(e.message || e) + '\n\nتأكد من اتصالك، أو أضف مفتاح OpenAI / Together / Hugging Face من مدير المفاتيح، أو مفتاح FreeLLMAPI موحداً.', tokens: 0 };
+      const errMsg = { role: 'assistant', content: 'تعذّر توليد الصورة: ' + String(e.message || e) + '\n\nأعد المحاولة بعد قليل (المسار المجاني قد يكون مشغولاً)، أو أضف مفتاح OpenAI / Together / Hugging Face من مدير المفاتيح.', tokens: 0 };
       updateSession(current.id, (s) => ({ ...s, messages: [...s.messages, errMsg] }));
     } finally { setLoading(false); }
   }
@@ -1014,7 +1014,7 @@ export default function Home() {
 
 
             {drawer === 'image' && (<>
-              <p>بمفتاح محفوظ: DALL·E 3 أو FLUX بجودة عالية. بدون مفتاح: بديل مجاني بجودة أقل (Pollinations).</p>
+              <p>بمفتاح محفوظ: DALL·E 3 أو FLUX بجودة عالية. بدون مفتاح: نموذج FLUX.1-schnell مفتوح المصدر مجاناً (قد ينتظر في الطابور). الوصف العربي يُترجم تلقائياً إلى الإنجليزية قبل التوليد.</p>
               <div className="field"><label>وصف الصورة</label><textarea value={imgPrompt} onChange={(e) => setImgPrompt(e.target.value)} rows={3} placeholder="مدينة مستقبلية عند الغروب، أسلوب سينمائي…" /></div>
               <div className="field"><label>الحجم</label><select value={imgSize} onChange={(e) => setImgSize(e.target.value)}><option>1024x1024</option><option>1024x1792</option><option>1792x1024</option></select></div>
               <button className="btn" onClick={genImage} disabled={imgLoading}>{imgLoading ? 'جارٍ التوليد…' : 'توليد الصورة'}</button>
@@ -1026,7 +1026,7 @@ export default function Home() {
                   <a className="btn ghost small" href={imgResult.url} download target="_blank" rel="noreferrer">⬇ تنزيل الصورة</a>
                   <button className="btn ghost small" onClick={() => copyText(imgResult.url, 'imgurl')}>{copied === 'imgurl' ? '✓ نُسخ الرابط' : 'نسخ رابط الصورة'}</button>
                 </div>
-                <p>تم التوليد عبر: {imgResult.via === 'pollinations' ? 'Pollinations (مجاني — جودة أقل)' : imgResult.via === 'freellmapi' ? 'FreeLLMAPI Router' : getProvider(imgResult.via).name}</p>
+                <p>تم التوليد عبر: {imgResult.via === 'huggingface-space' ? 'Hugging Face FLUX (مجاني بدون مفتاح)' : imgResult.via === 'freellmapi' ? 'FreeLLMAPI Router' : getProvider(imgResult.via).name}</p>
               </>)}
             </>)}
 
