@@ -265,3 +265,16 @@ img.gen{max-width:100%;border-radius:14px;border:1px solid var(--border);margin-
   .grid2{grid-template-columns:1fr}
   .msg-actions button{padding:6px 9px}
 }
+
+/* ===== FreeLLMAPI: دليل + كتل الأوامر ===== */
+.codeblock{direction:ltr;text-align:left;background:#0b0b14;border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;overflow-x:auto;white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0}
+.modal.wide{width:min(680px,96vw)}
+.guide-table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0}
+.guide-table th,.guide-table td{border:1px solid var(--border-soft);padding:8px 10px;text-align:start}
+.guide-table th{background:var(--surface-2)}
+.guide-steps{margin:0 0 8px;padding-inline-start:20px}
+.guide-steps li{margin-bottom:12px;font-size:13.5px;line-height:1.7}
+.controls input{flex:1 1 170px;min-width:0;width:auto}
+@media (max-width:820px){
+  .controls input{flex:1 1 100%}
+}
