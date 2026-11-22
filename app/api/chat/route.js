@@ -32,6 +32,7 @@ export async function POST(req) {
 
   for (const pid of providerIds) {
     const provider = getProvider(pid);
+    if (provider.videoOnly) { attempts.push({ provider: pid, error: 'هذا المزود للفيديو فقط — لا يقدم محادثة نصية.' }); continue; } // fal.ai فيديو فقط
     const base = pid === 'custom' ? (customBase || provider.baseURL) : (customBase && providerId !== 'auto' ? customBase : provider.baseURL);
     if (!base) { attempts.push({ provider: pid, error: 'لا يوجد رابط أساس لهذا المزود.' }); continue; }
     const mdl = model && providerId !== 'auto' ? model : provider.models[0];

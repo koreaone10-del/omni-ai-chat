@@ -1,6 +1,8 @@
 'use client';
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { PROVIDERS, getProvider, AUTO_ORDER } from '@/lib/providers';
+import { PROVIDERS, getProvider, AUTO_ORDER, FEATURES } from '@/lib/providers';
+import { USDT_WALLET, PLAN_USDT, PLAN_FEATURES } from '@/lib/payments';
+import QRCode from 'qrcode';
 import { estimateTokens, formatTokens } from '@/lib/tokens';
 import { loadKeyPool, saveKeyPool, addKeyToPool, generateAppApiKey } from '@/lib/keys';
 import { detectIntent, ROUTE_LABELS } from '@/lib/intent';
@@ -9,9 +11,9 @@ import { t, LANGS, isRTL } from '@/lib/i18n';
 import { BUILTIN_SKILLS } from '@/lib/skills';
 
 const PLANS = {
-  free: { name: 'مجانية', price: '0$', limit: 100000, images: 5 },
-  pro: { name: 'Pro', price: '4.99$/شهر', limit: 2000000, images: 200 },
-  business: { name: 'Business', price: '14.99$/شهر', limit: 10000000, images: 2000 }
+  free: { name: 'مجانية', price: '0$', limit: 100000, images: 5, usdt: PLAN_USDT.free.price, features: PLAN_FEATURES.free },
+  pro: { name: 'Pro', price: '4.99$/شهر', limit: 2000000, images: 200, usdt: PLAN_USDT.pro.price, features: PLAN_FEATURES.pro },
+  business: { name: 'Business', price: '14.99$/شهر', limit: 10000000, images: 2000, usdt: PLAN_USDT.business.price, features: PLAN_FEATURES.business }
 };
 const FREE_LIMIT = 100000;
 // راوتر FreeLLMAPI المستضاف على Railway (عام، HTTPS) — لا Termux ولا localhost
@@ -70,11 +72,22 @@ function renderMd(text, actions) {
 function textOf(msg) {
   if (msg.compare) return (msg.results || []).map((r) => `[${getProvider(r.provider).name}]: ${r.error ? 'خطأ — ' + r.error : (r.content || '')}`).join('\n\n');
   if (msg.kind === 'image') return '[صورة مولّدة: ' + (msg.prompt || '') + '] ' + (msg.imageUrl || '');
+  if (msg.kind === 'video') return '[فيديو مولّد: ' + (msg.prompt || '') + '] ' + (msg.videoUrl || (msg.videoJob ? 'قيد التوليد…' : ''));
   if (typeof msg.content === 'string') return msg.content;
   if (Array.isArray(msg.content)) return msg.content.filter((c) => c.type === 'text').map((c) => c.text).join('\n');
   return '';
 }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+// شعار USDT — رسم SVG مضمّن (لا يعتمد على أي صورة خارجية)
+function UsdtLogo({ size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-label="USDT" role="img" style={{ flexShrink: 0 }}>
+      <circle cx="16" cy="16" r="16" fill="#26a17b" />
+      <path d="M9 8h14v3.2h-5.4v12.8h-3.2V11.2H9z" fill="#fff" />
+    </svg>
+  );
+}
 function todayKey() { return new Date().toISOString().slice(0, 10); }
 // وصف صورة من سياق الجلسة — عندما يقول المستخدم «اريد صورة هنا» دون موضوع
 function subjectFromHistory(messages) {
@@ -186,7 +199,7 @@ export default function Home() {
   const [imgResult, setImgResult] = useState(null);
   const [imgLoading, setImgLoading] = useState(false);
   const [vidPrompt, setVidPrompt] = useState('');
-  const [vidProvider, setVidProvider] = useState('replicate');
+  const [vidProvider, setVidProvider] = useState('veo3'); // Veo 3 مكتمل الآن — الافتراضي
   const [vidResult, setVidResult] = useState(null);
   const [vidLoading, setVidLoading] = useState(false);
   const [showThink, setShowThink] = useState({});
@@ -194,7 +207,23 @@ export default function Home() {
   const [starsOn, setStarsOn] = useState(true);
   const [preview, setPreview] = useState(null); // { kind: 'html', code } | { kind: 'url', url }
   const [expandedCompare, setExpandedCompare] = useState(null); // { msg, idx }
-  const [payMsg, setPayMsg] = useState('');
+  // --- الدفع بـ USDT (TRC20) — v1.8 ---
+  const [payPlan, setPayPlan] = useState(null); // الخطة الجاري شراؤها (id) — null تعني لا نافذة
+  const [payEmail, setPayEmail] = useState('');
+  const [payTxid, setPayTxid] = useState('');
+  const [payStatus, setPayStatus] = useState(null); // {state:'verifying'|'ok'|'fail', message, details}
+  const [payQr, setPayQr] = useState('');
+  const [subscription, setSubscription] = useState(null); // {plan, txid, email, verifiedAt, expiresAt}
+  const subVerifiedRef = useRef(false); // إعادة التحقق من الاشتراك مرة واحدة عند التحميل
+  // --- لوحة أدوات المزود (v1.8) ---
+  const [toolsSheet, setToolsSheet] = useState(null); // id المزود الذي ورقته الطويلة مفتوحة
+  const [selectedTool, setSelectedTool] = useState(null); // آخر أداة اختارها المستخدم
+  const [imgPreferred, setImgPreferred] = useState('auto'); // نموذج الصور المفضل: auto | nanobanana | nanobanana-2.1 | nanobanana-pro | dalle | flux
+  // --- مهام الفيديو غير المتزامنة (v1.8) ---
+  const [vidJob, setVidJob] = useState(null); // مهمة فيديو الدرج: {jobId, endpoint, provider, status, url, error}
+  const [vidDuration, setVidDuration] = useState('8s');
+  const [vidAspect, setVidAspect] = useState('16:9');
+  const [vidResolution, setVidResolution] = useState('720p');
   const [activeSkills, setActiveSkills] = useState([]);
   const [customSkills, setCustomSkills] = useState([]);
   const [newSkillName, setNewSkillName] = useState('');
@@ -219,6 +248,16 @@ export default function Home() {
       const storedUser = JSON.parse(localStorage.getItem('omni_user') || 'null');
       if (storedUser && storedUser.google) setUser(storedUser); // حسابات العرض التجريبي القديمة لا تُستعاد
       setPlan(localStorage.getItem('omni_plan') || 'free');
+      // الاشتراك المدفوع (USDT): يُستعاد من المتصفح، ويُعاد التحقق منه من السلسلة (انظر useEffect أدناه)
+      try {
+        const sub = JSON.parse(localStorage.getItem('omni_subscription') || 'null');
+        if (sub && sub.plan && sub.expiresAt > Date.now() && PLANS[sub.plan] && sub.plan !== 'free') {
+          setSubscription(sub);
+          setPlan(sub.plan);
+        } else if (sub) {
+          localStorage.removeItem('omni_subscription');
+        }
+      } catch {}
       const d = JSON.parse(localStorage.getItem('omni_daily') || 'null');
       if (d && d.date === todayKey()) setDaily(d);
       setAppKey(localStorage.getItem('omni_appkey') || '');
@@ -272,7 +311,7 @@ export default function Home() {
   // إغلاق القائمة/الدرج/الورقة/النافذة بزر Escape — يعيد دائماً إلى عرض محادثة نظيف
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === 'Escape') { setSidebarOpen(false); setDrawer(null); setAuthOpen(false); setGuideOpen(false); setSheet(null); setPreview(null); setExpandedCompare(null); }
+      if (e.key === 'Escape') { setSidebarOpen(false); setDrawer(null); setAuthOpen(false); setGuideOpen(false); setSheet(null); setPreview(null); setExpandedCompare(null); setToolsSheet(null); setPayPlan(null); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -290,6 +329,36 @@ export default function Home() {
   useEffect(() => {
     fetch('/api/auth/config').then((r) => r.json()).then((d) => setGoogleConfigured(!!d.googleConfigured)).catch(() => setGoogleConfigured(false));
   }, []);
+  // إعادة التحقق من الاشتراك المدفوع عند التحميل: TXID مزوَّر في localStorage يسقط هنا.
+  useEffect(() => {
+    if (subVerifiedRef.current) return;
+    let sub = null;
+    try { sub = JSON.parse(localStorage.getItem('omni_subscription') || 'null'); } catch {}
+    if (!sub || !sub.txid || !sub.plan || sub.plan === 'free') return;
+    subVerifiedRef.current = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/verify-payment', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ txid: sub.txid, planId: sub.plan, email: sub.email, purpose: 'recheck' })
+        });
+        const data = await res.json();
+        if (!data.verified) {
+          try { localStorage.removeItem('omni_subscription'); localStorage.setItem('omni_plan', 'free'); } catch {}
+          setSubscription(null); setPlan('free');
+        }
+      } catch {}
+    })();
+  }, []);
+  // توليد QR لعنوان محفظة USDT عند فتح نافذة الدفع
+  useEffect(() => {
+    if (!payPlan) { setPayQr(''); return; }
+    let alive = true;
+    QRCode.toDataURL(USDT_WALLET, { width: 220, margin: 1, color: { dark: '#111111', light: '#ffffff' } })
+      .then((url) => { if (alive) setPayQr(url); })
+      .catch(() => { if (alive) setPayQr(''); });
+    return () => { alive = false; };
+  }, [payPlan]);
   // مزامنة حساب Google من جلسة next-auth إلى حالة الواجهة
   useEffect(() => {
     if (session?.user) {
@@ -665,11 +734,11 @@ export default function Home() {
     try {
       const res = await fetch('/api/image', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, apiKeys: keys, flKeys: flKeys.filter((k) => k.status !== 'exhausted').map((k) => ({ value: k.value })), flUrl: flUrl || FL_DEFAULT_URL, size: '1024x1024' })
+        body: JSON.stringify({ prompt, apiKeys: keys, flKeys: flKeys.filter((k) => k.status !== 'exhausted').map((k) => ({ value: k.value })), flUrl: flUrl || FL_DEFAULT_URL, size: '1024x1024', preferred: imgPreferred })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'فشل توليد الصورة.');
-      const viaName = data.via === 'huggingface-space' ? 'Hugging Face FLUX (مجاني بدون مفتاح)' : data.via === 'freellmapi' ? 'FreeLLMAPI Router' : getProvider(data.via).name;
+      const viaName = data.via === 'huggingface-space' ? 'Hugging Face FLUX (مجاني بدون مفتاح)' : data.via === 'freellmapi' ? 'FreeLLMAPI Router' : data.via === 'gemini' ? 'Nano Banana (Google Gemini)' : getProvider(data.via).name;
       const imgMsg = {
         role: 'assistant', kind: 'image', imageUrl: data.url, prompt,
         via: viaName + (data.free ? ' — مجاني بدون مفتاح' : ''),
@@ -685,6 +754,7 @@ export default function Home() {
 
   // ---------- توليد فيديو من داخل المحادثة (عبر الموجّه الذكي) ----------
   // لا فيديو وهمي أبداً: إما فيديو حقيقي أو شرح صريح بالخطوات.
+  // الفيديو غير متزامن: المهمة تُعرض في رسالة وتُحدَّث عند اكتمالها (استطلاع كل 8 ثوانٍ).
   async function genVideoChat(textOverride) {
     const text = (textOverride ?? input).trim();
     if (!current) return;
@@ -695,12 +765,18 @@ export default function Home() {
     updateSession(current.id, (s) => ({ ...s, title: s.messages.length === 0 ? prompt.slice(0, 40) : s.title, messages: history, tokens: (s.tokens || 0) + userMsg.tokens }));
     setInput(''); setAttachments([]); setLoading(true);
     try {
-      const res = await fetch('/api/video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, provider: vidProvider, apiKeys: keys }) });
+      const res = await fetch('/api/video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, provider: vidProvider, apiKeys: keys, duration: vidDuration, aspectRatio: vidAspect, resolution: vidResolution }) });
       const data = await res.json();
-      const content = res.ok
-        ? 'تم إنشاء الفيديو:\n' + String(data.url || data.videoUrl || '')
-        : (data.error || 'تعذّر توليد الفيديو.') + (data.howTo ? '\n\n' + data.howTo : '');
-      updateSession(current.id, (s) => ({ ...s, messages: [...s.messages, { role: 'assistant', content, tokens: estimateTokens(content) }] }));
+      if (res.ok && data.status === 'queued') {
+        const msgId = uid();
+        updateSession(current.id, (s) => ({ ...s, messages: [...s.messages, { id: msgId, role: 'assistant', kind: 'video', prompt, videoJob: { jobId: data.jobId, endpoint: data.endpoint, provider: data.provider, model: data.model, status: 'queued' }, tokens: 0 }] }));
+        pollVideoJob(current.id, data.jobId, data.endpoint, data.provider, msgId);
+      } else if (res.ok && data.status === 'completed' && (data.url || data.videoUrl)) {
+        updateSession(current.id, (s) => ({ ...s, messages: [...s.messages, { role: 'assistant', kind: 'video', prompt, videoUrl: data.url || data.videoUrl, note: data.model ? 'عبر: ' + data.model : null, tokens: 0 }] }));
+      } else {
+        const content = (data.error || 'تعذّر توليد الفيديو.') + (data.howTo ? '\n\n' + data.howTo : '');
+        updateSession(current.id, (s) => ({ ...s, messages: [...s.messages, { role: 'assistant', content, tokens: estimateTokens(content) }] }));
+      }
     } catch (e) {
       updateSession(current.id, (s) => ({ ...s, messages: [...s.messages, { role: 'assistant', content: 'تعذّر توليد الفيديو: ' + String(e.message || e), tokens: 0 }] }));
     } finally { setLoading(false); }
@@ -712,6 +788,7 @@ export default function Home() {
     if (!text && attachments.length === 0) return;
     const tool = pendingTool;
     setPendingTool(null);
+    setSelectedTool(null);
     if (tool === 'image') { genImageChat(textOverride); return; }
     if (tool === 'video') { genVideoChat(textOverride); return; }
     const hasImage = attachments.some((a) => a.kind === 'image');
@@ -734,6 +811,132 @@ export default function Home() {
     }
     if (tool === 'deep') { setDeepThinking((v) => !v); return; }
     if (tool === 'compare') { if (compareOn) setCompareOn(false); else enableCompare(); return; }
+  }
+
+  // --- الدفع بـ USDT (TRC20) — v1.8 ---
+  const CHECK_LABELS = {
+    txExists: 'المعاملة موجودة على سلسلة TRON',
+    txSuccess: 'المعاملة ناجحة (مؤكدة)',
+    transferFound: 'تحويل USDT موجود في المعاملة',
+    recipientOk: 'المستلم هو محفظة الموقع',
+    amountOk: 'المبلغ يطابق سعر الخطة بالضبط',
+    recentOk: 'المعاملة حديثة (آخر 24 ساعة)',
+    notSelf: 'المرسل ليس المحفظة نفسها'
+  };
+  function openPay(id) {
+    setPayPlan(id);
+    setPayEmail((googleUser && googleUser.email) || (user && user.email) || '');
+    setPayTxid(''); setPayStatus(null);
+  }
+  // تغيير الخطة من الإعدادات: المدفوعة لا تُختار إلا باشتراك موثّق، وإلا تُفتح بطاقات الأسعار.
+  function changePlan(id) {
+    if (id === 'free') { setPlan('free'); return; }
+    if (subscription && subscription.plan === id && subscription.expiresAt > Date.now()) { setPlan(id); return; }
+    setDrawer('pricing'); setError('خطة ' + (PLANS[id] ? PLANS[id].name : id) + ' تحتاج شراءً بـ USDT — اخترها من بطاقات الأسعار وأكمل الدفع.');
+  }
+  async function verifyPayment() {
+    const planId = payPlan; if (!planId) return;
+    const txid = payTxid.trim();
+    if (!txid) { setPayStatus({ state: 'fail', message: 'الصق رقم المعاملة (TXID) بعد إرسال الدفع أولاً.' }); return; }
+    let used = [];
+    try { used = JSON.parse(localStorage.getItem('omni_used_txids') || '[]'); } catch {}
+    if (used.map((x) => String(x).toLowerCase()).includes(txid.toLowerCase())) {
+      setPayStatus({ state: 'fail', message: 'هذا TXID استُخدم من قبل على هذا الجهاز — كل دفعة معاملة جديدة.' });
+      return;
+    }
+    setPayStatus({ state: 'verifying', message: 'جارٍ التحقق من سلسلة TRON…' });
+    try {
+      const res = await fetch('/api/verify-payment', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ txid, planId, email: payEmail.trim() })
+      });
+      const data = await res.json();
+      if (data.verified) {
+        const sub = { plan: planId, txid: data.txid, email: data.email, verifiedAt: Date.now(), expiresAt: Date.now() + 30 * 24 * 3600 * 1000 };
+        try {
+          localStorage.setItem('omni_subscription', JSON.stringify(sub));
+          localStorage.setItem('omni_plan', planId);
+          localStorage.setItem('omni_used_txids', JSON.stringify([...used, data.txid].slice(-50)));
+        } catch {}
+        setPlan(planId); setSubscription(sub);
+        setPayStatus({ state: 'ok', message: 'تم التحقق من الدفع وتفعيل خطة ' + PLANS[planId].name + ' لمدة شهر ✓', details: data });
+      } else {
+        setPayStatus({ state: 'fail', message: data.reason || 'تعذّر التحقق من الدفع.', details: data });
+      }
+    } catch (e) {
+      setPayStatus({ state: 'fail', message: 'تعذّر الوصول إلى خادم التحقق: ' + String(e.message || e) });
+    }
+  }
+
+  // --- لوحة أدوات المزود (v1.8) ---
+  function toolNameById(id) {
+    for (const p of PROVIDERS) for (const t of (p.tools || [])) if (t.id === id) return t.name;
+    return null;
+  }
+  function applyTool(tool) {
+    setToolsSheet(null);
+    setSelectedTool(tool.id);
+    if (tool.id === 'chat') return;
+    if (tool.id === 'code') {
+      if (!activeSkills.includes('web-dev')) toggleSkill('web-dev');
+      setDeepThinking(false);
+      setTimeout(() => composerRef.current?.focus(), 50);
+      return;
+    }
+    if (tool.id === 'analysis') {
+      if (!activeSkills.includes('data-analyst')) toggleSkill('data-analyst');
+      setTimeout(() => composerRef.current?.focus(), 50);
+      return;
+    }
+    if (tool.id === 'research') { setDeepThinking(true); setTimeout(() => composerRef.current?.focus(), 50); return; }
+    if (tool.id === 'compare') {
+      if (!compareOn) setCompareOn(true);
+      setTimeout(() => composerRef.current?.focus(), 50);
+      return;
+    }
+    if (tool.id === 'image' || tool.id === 'image-flux') { setImgPreferred(tool.id === 'image-flux' ? 'flux' : 'auto'); setPendingTool('image'); setTimeout(() => composerRef.current?.focus(), 50); return; }
+    if (tool.id === 'image-nanobanana') { setImgPreferred('nanobanana'); setPendingTool('image'); setTimeout(() => composerRef.current?.focus(), 50); return; }
+    if (tool.id === 'image-nanobanana-pro') { setImgPreferred('nanobanana-pro'); setPendingTool('image'); setTimeout(() => composerRef.current?.focus(), 50); return; }
+    if (tool.id === 'video-veo3') { setVidProvider('veo3'); setPendingTool('video'); setTimeout(() => composerRef.current?.focus(), 50); return; }
+    if (tool.id === 'video-seedance') { setVidProvider('seedance'); setPendingTool('video'); setTimeout(() => composerRef.current?.focus(), 50); return; }
+    if (tool.id === 'video-omni') { setVidProvider('omni'); setPendingTool('video'); setTimeout(() => composerRef.current?.focus(), 50); return; }
+  }
+  // --- مهام الفيديو غير المتزامنة (v1.8) ---
+  // استطلاع حالة مهمة fal حتى اكتمالها (كل 8 ثوانٍ، بحد أقصى ~10 دقائق)،
+  // ثم تحديث رسالة الفيديو في المحادثة (أو بطاقة الدرج) بالنتيجة.
+  function pollVideoJob(sessionId, jobId, endpoint, providerName, chatMsgId) {
+    let tries = 0;
+    const tick = async () => {
+      tries += 1;
+      if (tries > 75) {
+        const err = 'انتهت مهلة الانتظار (10 دقائق) — الفيديو قد يكون ما زال يُولَّد؛ جرّب لاحقاً.';
+        if (chatMsgId) updateSession(sessionId, (s) => ({ ...s, messages: s.messages.map((m) => (m.id === chatMsgId ? { ...m, videoJob: null, note: err } : m)) }));
+        else setVidJob((j) => (j && j.jobId === jobId ? { ...j, status: 'failed', error: err } : j));
+        return;
+      }
+      try {
+        const res = await fetch('/api/video/status', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint, jobId, apiKeys: keys })
+        });
+        const data = await res.json();
+        if (data.status === 'completed' && data.url) {
+          if (chatMsgId) updateSession(sessionId, (s) => ({ ...s, messages: s.messages.map((m) => (m.id === chatMsgId ? { ...m, videoUrl: data.url, videoJob: null, note: null } : m)) }));
+          else setVidJob((j) => (j && j.jobId === jobId ? { ...j, status: 'completed', url: data.url } : j));
+          return;
+        }
+        if (data.status === 'failed' || res.status >= 400) {
+          const err = data.error || 'فشل توليد الفيديو.';
+          if (chatMsgId) updateSession(sessionId, (s) => ({ ...s, messages: s.messages.map((m) => (m.id === chatMsgId ? { ...m, videoJob: null, note: err } : m)) }));
+          else setVidJob((j) => (j && j.jobId === jobId ? { ...j, status: 'failed', error: err } : j));
+          return;
+        }
+        setTimeout(tick, 8000);
+      } catch (e) {
+        setTimeout(tick, 8000);
+      }
+    };
+    setTimeout(tick, 8000);
   }
 
   // ---------- المصادقة الحقيقية: Google OAuth عبر next-auth (v1.7) ----------
@@ -772,7 +975,7 @@ export default function Home() {
     if (daily.images >= planInfo.images) { setError('بلغت حد صور اليوم في خطتك (' + planInfo.images + ').'); setDrawer('pricing'); return; }
     setImgLoading(true); setImgResult(null);
     try {
-      const res = await fetch('/api/image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: imgPrompt, apiKeys: keys, flKeys: flKeys.filter((k) => k.status !== 'exhausted').map((k) => ({ value: k.value })), flUrl: flUrl || FL_DEFAULT_URL, size: imgSize }) });
+      const res = await fetch('/api/image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: imgPrompt, apiKeys: keys, flKeys: flKeys.filter((k) => k.status !== 'exhausted').map((k) => ({ value: k.value })), flUrl: flUrl || FL_DEFAULT_URL, size: imgSize, preferred: imgPreferred }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'فشل توليد الصورة.');
       setImgResult(data); setDaily((d) => ({ ...d, images: d.images + 1 }));
@@ -781,11 +984,16 @@ export default function Home() {
   }
   async function genVideo() {
     if (!vidPrompt.trim()) return;
-    setVidLoading(true); setVidResult(null);
+    setVidLoading(true); setVidResult(null); setVidJob(null);
     try {
-      const res = await fetch('/api/video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: vidPrompt, provider: vidProvider, apiKeys: keys }) });
+      const res = await fetch('/api/video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: vidPrompt, provider: vidProvider, apiKeys: keys, duration: vidDuration, aspectRatio: vidAspect, resolution: vidResolution }) });
       const data = await res.json();
-      setVidResult({ status: res.status, ...data });
+      if (res.ok && data.status === 'queued') {
+        setVidJob({ jobId: data.jobId, endpoint: data.endpoint, provider: data.provider, model: data.model, status: 'queued' });
+        pollVideoJob(null, data.jobId, data.endpoint, data.provider, null);
+      } else {
+        setVidResult({ status: res.status, ...data });
+      }
     } catch (e) { setVidResult({ error: String(e.message || e) }); }
     finally { setVidLoading(false); }
   }
@@ -971,7 +1179,22 @@ export default function Home() {
                           <span>{formatTokens(m.tokens || estimateTokens(textOf(m)))} توكن</span>
                         </div>
                         {m.route && m.role === 'user' && <div className="route-chip">تم التوجيه إلى: {ROUTE_LABELS[m.route] || m.route}</div>}
-                        {m.kind === 'image' ? (
+                        {m.kind === 'video' ? (
+                          <>
+                            {m.videoUrl ? (
+                              <>
+                                <video className="gen" src={m.videoUrl} controls playsInline />
+                                <div className="msg-actions">
+                                  <a className="btn ghost small" href={m.videoUrl} download target="_blank" rel="noreferrer">⬇ تنزيل الفيديو</a>
+                                  <button onClick={() => copyText(m.videoUrl, 'vid' + i)}>{copied === 'vid' + i ? '✓ نُسخ الرابط' : 'نسخ رابط الفيديو'}</button>
+                                </div>
+                              </>
+                            ) : m.videoJob ? (
+                              <div className="note blue" style={{ marginTop: 10 }}>🎬 جارٍ توليد الفيديو عبر {m.videoJob.model || m.videoJob.provider}… المهمة {String(m.videoJob.jobId).slice(0, 8)} — قد تستغرق 1–3 دقائق، وسيظهر الفيديو هنا فور اكتماله.</div>
+                            ) : null}
+                            {m.note && <div className="note blue" style={{ marginTop: 10 }}>{m.note}</div>}
+                          </>
+                        ) : m.kind === 'image' ? (
                           <>
                             <img className="gen" src={m.imageUrl} alt={m.prompt || 'صورة مولّدة'} />
                             {m.note && <div className="note blue" style={{ marginTop: 10 }}>{m.note}</div>}
@@ -1022,6 +1245,17 @@ export default function Home() {
             <button className="model-pill-btn" onClick={() => setSheet('model')} aria-label="اختيار النموذج">{currentModelLabel} <span aria-hidden="true">⌄</span></button>
             {deepThinking && <span className="mini-chip">🧠 {tt('deepThinking')}</span>}
             {pendingTool && <span className="mini-chip">الأداة: {pendingTool === 'image' ? '🖼 توليد صورة' : '🎬 توليد فيديو'} <button onClick={() => setPendingTool(null)} aria-label="إلغاء الأداة">✕</button></span>}
+            {selectedTool && !pendingTool && <span className="mini-chip">الأداة: {toolNameById(selectedTool) || selectedTool} <button onClick={() => setSelectedTool(null)} aria-label="إلغاء الأداة">✕</button></span>}
+          </div>
+          {/* شريط أدوات المزود المحدد — نص صغير، قابل للتمرير؛ النقر يفتح الورقة الطويلة (v1.8) */}
+          <div className="tools-strip" role="group" aria-label={'أدوات ' + provider.name}>
+            {(provider.tools || []).map((tool) => (
+              <button key={tool.id} className={'tool-chip' + (selectedTool === tool.id ? ' on' : '')} onClick={() => setToolsSheet(provider.id)} title={tool.desc}>
+                <span className="tool-chip-dot" style={{ background: (FEATURES[tool.feature] || FEATURES.chat).color }} />
+                {tool.name}
+              </button>
+            ))}
+            <button className="tool-chip more" onClick={() => setToolsSheet(provider.id)} aria-label="كل أدوات المزود">⋯ كل الأدوات</button>
           </div>
           <div className="composer-row">
             <button className="plus-btn" onClick={() => setSheet('tools')} title="إضافة أداة" aria-label="إضافة أداة">+</button>
@@ -1052,7 +1286,7 @@ export default function Home() {
                 <span className="model-desc">يختار أفضل مزود متاح، وينتقل للبديل تلقائياً عند نفاد الرصيد</span>
                 {providerId === 'auto' && !compareOn && <span className="model-check">✓</span>}
               </button>
-              {PROVIDERS.map((p) => {
+              {PROVIDERS.filter((p) => !p.videoOnly).map((p) => {
                 const hasKey = !p.needsKey || (keys[p.id] || []).some((k) => k.status !== 'exhausted') || (p.id === 'freellmapi' && flKeys.some((k) => k.status !== 'exhausted'));
                 const selected = providerId === p.id && !compareOn;
                 return (
@@ -1074,7 +1308,7 @@ export default function Home() {
             {compareOn && (
               <div className="compare-picker">
                 <span className="compare-picker-title">⚔️ المزودون المتنافسون:</span>
-                {PROVIDERS.filter((p) => p.id !== 'ollama' && p.id !== 'custom').map((p) => {
+                {PROVIDERS.filter((p) => p.id !== 'ollama' && p.id !== 'custom' && !p.videoOnly).map((p) => {
                   const ok = isCompareEligible(p.id);
                   const checked = compareProviders.includes(p.id);
                   return (
@@ -1122,7 +1356,7 @@ export default function Home() {
               </button>
               <button className="tool-row" onClick={() => chooseTool('video')}>
                 <span className="tool-icon">🎬</span>
-                <span className="tool-text"><b>توليد فيديو</b><small>يحتاج مفتاحاً مدفوعاً (Replicate / Luma / Runway)</small></span>
+                <span className="tool-text"><b>توليد فيديو</b><small>Veo 3 و Seedance 2.5 بمفتاح fal.ai، أو Omni بمفتاح Gemini</small></span>
               </button>
               <button className="tool-row" onClick={() => { setSheet(null); fileImageOnlyRef.current?.click(); }}>
                 <span className="tool-icon">📷</span>
@@ -1146,6 +1380,38 @@ export default function Home() {
           </div>
         </>
       )}
+
+      {/* ورقة أدوات المزود الطويلة (v1.8): كل أدوات المزود المحدد مع شارة ميزته بلونها */}
+      {toolsSheet && (() => {
+        const p = getProvider(toolsSheet) || provider;
+        return (
+          <>
+            <div className="sheet-back" onClick={() => setToolsSheet(null)} aria-hidden="true" />
+            <div className="sheet tall" role="dialog" aria-label={'أدوات ' + p.name}>
+              <div className="sheet-grip" />
+              <div className="sheet-head">
+                <h2>🛠 أدوات {p.name}</h2>
+                <button className="sidebar-close" style={{ display: 'inline-flex' }} onClick={() => setToolsSheet(null)} aria-label="إغلاق">✕</button>
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--muted)', margin: '0 0 10px' }}>اختر أداة — ستُفعَّل للرسالة التالية (برمجة، بحث عميق، توليد صورة أو فيديو…).</p>
+              <div className="tool-list-sheet">
+                {(p.tools || []).map((tool) => {
+                  const f = FEATURES[tool.feature] || FEATURES.chat;
+                  return (
+                    <button key={tool.id} className="tool-row" onClick={() => applyTool(tool)}>
+                      <span className="tool-icon" style={{ background: f.color + '22', color: f.color }}>●</span>
+                      <span className="tool-text"><b>{tool.name}</b><small>{tool.desc}</small></span>
+                      <span className="feature-badge" style={{ background: f.color }}>{f.label}</span>
+                      {selectedTool === tool.id && <span className="model-check">✓</span>}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="note blue" style={{ marginTop: 12 }}>الأدوات التي تحتاج مفتاحاً (Nano Banana، Veo 3، Seedance) تُضاف مفاتيحها من «مدير المفاتيح» — كل مفتاح إضافي يدخل في التناوب التلقائي عند نفاد رصيد الأول.</div>
+            </div>
+          </>
+        );
+      })()}
 
       {/* درج جانبي: مفاتيح / صور / فيديو / إحصائيات / أسعار / إعدادات */}
       {drawer && (
@@ -1217,8 +1483,16 @@ export default function Home() {
 
 
             {drawer === 'image' && (<>
-              <p>بمفتاح محفوظ: DALL·E 3 أو FLUX بجودة عالية. بدون مفتاح: نموذج FLUX.1-schnell مفتوح المصدر مجاناً (قد ينتظر في الطابور). الوصف العربي يُترجم تلقائياً إلى الإنجليزية قبل التوليد.</p>
+              <p>بمفتاح محفوظ: Nano Banana 2 (Google) أو DALL·E 3 أو FLUX بجودة عالية. بدون مفتاح: نموذج FLUX.1-schnell مفتوح المصدر مجاناً (قد ينتظر في الطابور). الوصف العربي يُترجم تلقائياً إلى الإنجليزية قبل التوليد.</p>
               <div className="field"><label>وصف الصورة</label><textarea value={imgPrompt} onChange={(e) => setImgPrompt(e.target.value)} rows={3} placeholder="مدينة مستقبلية عند الغروب، أسلوب سينمائي…" /></div>
+              <div className="field"><label>نموذج الصور</label><select value={imgPreferred} onChange={(e) => setImgPreferred(e.target.value)}>
+                <option value="auto">تلقائي — الأفضل المتاح بمفاتيحك</option>
+                <option value="nanobanana-2.1">Nano Banana 2.1 — الأحدث (مفتاح Gemini)</option>
+                <option value="nanobanana">Nano Banana 2 (مفتاح Gemini)</option>
+                <option value="nanobanana-pro">Nano Banana Pro — أعلى جودة (مفتاح Gemini)</option>
+                <option value="dalle">DALL·E 3 (مفتاح OpenAI)</option>
+                <option value="flux">FLUX (مفتاح Together أو Hugging Face)</option>
+              </select></div>
               <div className="field"><label>الحجم</label><select value={imgSize} onChange={(e) => setImgSize(e.target.value)}><option>1024x1024</option><option>1024x1792</option><option>1792x1024</option></select></div>
               <button className="btn" onClick={genImage} disabled={imgLoading}>{imgLoading ? 'جارٍ التوليد…' : 'توليد الصورة'}</button>
               {imgResult?.note && <div className="note blue">{imgResult.note}</div>}
@@ -1229,15 +1503,38 @@ export default function Home() {
                   <a className="btn ghost small" href={imgResult.url} download target="_blank" rel="noreferrer">⬇ تنزيل الصورة</a>
                   <button className="btn ghost small" onClick={() => copyText(imgResult.url, 'imgurl')}>{copied === 'imgurl' ? '✓ نُسخ الرابط' : 'نسخ رابط الصورة'}</button>
                 </div>
-                <p>تم التوليد عبر: {imgResult.via === 'huggingface-space' ? 'Hugging Face FLUX (مجاني بدون مفتاح)' : imgResult.via === 'freellmapi' ? 'FreeLLMAPI Router' : getProvider(imgResult.via).name}</p>
+                <p>تم التوليد عبر: {imgResult.via === 'huggingface-space' ? 'Hugging Face FLUX (مجاني بدون مفتاح)' : imgResult.via === 'freellmapi' ? 'FreeLLMAPI Router' : imgResult.via === 'gemini' ? 'Nano Banana (Google Gemini)' : getProvider(imgResult.via).name}</p>
               </>)}
             </>)}
 
             {drawer === 'video' && (<>
-              <p>توليد الفيديو يحتاج مفتاحاً مدفوعاً (Replicate / Luma / Runway) — لا يوجد مزود فيديو مجاني موثوق بدون مفتاح، ولن نعرض فيديو وهمياً.</p>
+              <p>فيديو حقيقي فقط — بلا فيديو وهمي أبداً. Veo 3 و Seedance 2.5 بمفتاح fal.ai واحد (مدفوع حسب الاستخدام، بلا اشتراك)، أو Omni Flash بمفتاح Gemini المجاني. الفيديو يُولَّد في الخلفية وتظهر حالته هنا حتى يكتمل.</p>
               <div className="field"><label>وصف الفيديو</label><textarea value={vidPrompt} onChange={(e) => setVidPrompt(e.target.value)} rows={3} placeholder="موجة بحر تتحرك ببطء عند الفجر…" /></div>
-              <div className="field"><label>المزود</label><select value={vidProvider} onChange={(e) => setVidProvider(e.target.value)}><option value="replicate">Replicate</option><option value="luma">Luma</option><option value="runway">Runway</option></select></div>
-              <button className="btn" onClick={genVideo} disabled={vidLoading}>{vidLoading ? 'جارٍ…' : 'توليد الفيديو'}</button>
+              <div className="field"><label>النموذج</label><select value={vidProvider} onChange={(e) => setVidProvider(e.target.value)}>
+                <option value="veo3">Veo 3 — سينمائي حتى 8 ثوانٍ بصوت (fal.ai)</option>
+                <option value="seedance">Seedance 2.5 — حتى 30 ثانية، حتى 4K (fal.ai)</option>
+                <option value="omni">Gemini Omni Flash — حتى 15 ثانية بصوت (Gemini)</option>
+                <option value="replicate">Replicate</option>
+                <option value="luma">Luma</option>
+                <option value="runway">Runway</option>
+              </select></div>
+              {(vidProvider === 'veo3' || vidProvider === 'seedance') && (<>
+                <div className="field"><label>المدة</label><select value={vidDuration} onChange={(e) => setVidDuration(e.target.value)}>
+                  {vidProvider === 'veo3' ? (<><option value="4s">4 ثوانٍ</option><option value="6s">6 ثوانٍ</option><option value="8s">8 ثوانٍ</option></>) : (<><option value="auto">تلقائي</option><option value="4">4 ثوانٍ</option><option value="8">8 ثوانٍ</option><option value="12">12 ثانية</option><option value="30">30 ثانية</option></>)}
+                </select></div>
+                <div className="field"><label>نسبة العرض</label><select value={vidAspect} onChange={(e) => setVidAspect(e.target.value)}><option value="16:9">16:9</option><option value="9:16">9:16</option>{vidProvider === 'seedance' && (<><option value="21:9">21:9</option><option value="4:3">4:3</option><option value="1:1">1:1</option><option value="auto">تلقائي</option></>)}</select></div>
+                <div className="field"><label>الدقة</label><select value={vidResolution} onChange={(e) => setVidResolution(e.target.value)}>
+                  {vidProvider === 'veo3' ? (<><option value="720p">720p</option><option value="1080p">1080p</option></>) : (<><option value="480p">480p</option><option value="720p">720p</option><option value="1080p">1080p</option><option value="4k">4K</option></>)}
+                </select></div>
+              </>)}
+              <button className="btn" onClick={genVideo} disabled={vidLoading}>{vidLoading ? 'جارٍ إرسال المهمة…' : 'توليد الفيديو'}</button>
+              {vidJob && (
+                <div className="note blue" style={{ marginTop: 12 }}>
+                  {vidJob.status === 'queued' && <>🎬 المهمة قيد التوليد عبر {vidJob.model || vidJob.provider}… قد تستغرق 1–3 دقائق. سأعرض الفيديو هنا فور اكتماله.</>}
+                  {vidJob.status === 'completed' && vidJob.url && <><video className="gen" src={vidJob.url} controls playsInline /><div style={{ display: 'flex', gap: 8, marginTop: 10 }}><a className="btn ghost small" href={vidJob.url} download target="_blank" rel="noreferrer">⬇ تنزيل الفيديو</a><button className="btn ghost small" onClick={() => copyText(vidJob.url, 'vidurl')}>{copied === 'vidurl' ? '✓ نُسخ الرابط' : 'نسخ رابط الفيديو'}</button></div></>}
+                  {vidJob.status === 'failed' && <>❌ فشل توليد الفيديو: {vidJob.error || 'خطأ غير معروف.'}</>}
+                </div>
+              )}
               {vidResult && <div className="note" style={{ marginTop: 12 }}>
                 <b>{vidResult.error || 'نتيجة'}</b>
                 {vidResult.howTo && <p style={{ marginTop: 6 }}>{vidResult.howTo}</p>}
@@ -1269,7 +1566,7 @@ export default function Home() {
               <div className="tool-list">
                 <div className="key-row"><span style={{ flex: 1 }}>🤖 محادثة</span><span>مفتاح مجاني (Groq) أو بدون مفتاح عبر Pollinations</span></div>
                 <div className="key-row"><span style={{ flex: 1 }}>🖼 توليد الصور</span><span>DALL·E أو FLUX بمفتاح، أو بديل مجاني بجودة أقل</span></div>
-                <div className="key-row"><span style={{ flex: 1 }}>🎬 توليد الفيديو</span><span>يحتاج مفتاحاً مدفوعاً (Replicate / Luma / Runway)</span></div>
+                <div className="key-row"><span style={{ flex: 1 }}>🎬 توليد الفيديو</span><span>Veo 3 و Seedance 2.5 بمفتاح fal.ai، أو Omni بمفتاح Gemini — أو مفتاح Replicate / Luma / Runway</span></div>
                 <div className="key-row"><span style={{ flex: 1 }}>🧠 تفكير عميق</span><span>يعمل مع أي مزود — فعّله من ورقة «+»</span></div>
                 <div className="key-row"><span style={{ flex: 1 }}>⚔️ مقارنة</span><span>نفس السؤال لعدة مزودين — من ورقة «+» أو ورقة النموذج</span></div>
                 <div className="key-row"><span style={{ flex: 1 }}>📁 رفع ملفات وتحليلها</span><span>نصوص حتى 2MB؛ ملف PDF يُقبل دون استخراج نصه</span></div>
@@ -1282,19 +1579,25 @@ export default function Home() {
             </>)}
 
             {drawer === 'pricing' && (<>
-              <p>الأسعار بالدولار. الدفع عبر Stripe غير متصل بعد — زر الترقية يشرح ذلك بصراحة ولن يخصم أي مبلغ.</p>
-              <div className="plan-grid">
+              <p>الدفع بـ USDT على شبكة TRON (TRC20) — آمن وموثّق على سلسلة البلوكشين. اختر خطة، أرسل المبلغ بالضبط إلى محفظة الموقع، ثم الصق رقم المعاملة (TXID) للتحقق الفوري.</p>
+              {subscription && subscription.expiresAt > Date.now() && (
+                <div className="note green">اشتراكك الحالي: خطة {PLANS[subscription.plan]?.name || subscription.plan} — صالح حتى {new Date(subscription.expiresAt).toLocaleDateString('ar')}.<br />البريد المرتبط: {subscription.email || '—'} · TXID: <code dir="ltr">{String(subscription.txid).slice(0, 12)}…{String(subscription.txid).slice(-6)}</code></div>
+              )}
+              <div className="pay-grid">
                 {Object.entries(PLANS).map(([id, p]) => (
-                  <div key={id} className={'plan' + (plan === id ? ' current' : '')}>
-                    <b>{p.name}</b><div className="price">{p.price}</div>
-                    <div>{formatTokens(p.limit)} توكن/يوم</div><div>{p.images} صورة/يوم</div>
+                  <div key={id} className={'pay-card' + (plan === id ? ' current' : '') + (id !== 'free' ? ' paid' : '')}>
+                    <div className="pay-card-head"><b>{p.name}</b>{id !== 'free' && <UsdtLogo />}</div>
+                    <div className="pay-price">{id === 'free' ? 'مجانية' : p.usdt + ' USDT'}</div>
+                    <div className="pay-per">{id === 'free' ? 'للأبد' : ' / شهر'}</div>
+                    <ul className="pay-features">{p.features.map((f) => <li key={f}>✓ {f}</li>)}</ul>
+                    <div className="pay-limits">{formatTokens(p.limit)} توكن/يوم · {p.images} صورة/يوم</div>
                     {plan === id ? <div className="badge" style={{ marginTop: 8 }}>خطتك الحالية</div>
-                      : <button className="btn small" style={{ marginTop: 8 }} onClick={() => setPayMsg(tt('paymentNotEnabled'))}>{tt('upgrade')} إلى {p.name}</button>}
+                      : id === 'free' ? <button className="btn small ghost" style={{ marginTop: 8 }} onClick={() => { changePlan('free'); try { localStorage.setItem('omni_plan', 'free'); } catch {} }}>اختيار المجانية</button>
+                      : <button className="btn small" style={{ marginTop: 8 }} onClick={() => openPay(id)}>شراء بـ USDT</button>}
                   </div>
                 ))}
               </div>
-              {payMsg && <div className="note">{payMsg}</div>}
-              <div className="note">الخطة المجانية: 100 ألف توكن/يوم تقديرياً عبر المزودين المجانيين و5 صور/يوم. الحدود تُحسب من تقدير التوكنات المحلي ومن usage المزود عند توفره. عداد الاستخدام محلي في متصفحك (localStorage) وليس فوترة خادم — راجع الأسعار أعلاه.</div>
+              <div className="note">الخطة المجانية: 100 ألف توكن/يوم تقديرياً عبر المزودين المجانيين و5 صور/يوم. الحدود تُحسب من تقدير التوكنات المحلي ومن usage المزود عند توفره. عداد الاستخدام محلي في متصفحك (localStorage) وليس فوترة خادم. التحقق من الدفع يقرأ سلسلة TRON مباشرة — لا نطلب مفتاحك الخاص أبداً.</div>
             </>)}
 
             {drawer === 'skills' && (<>
@@ -1352,7 +1655,7 @@ export default function Home() {
               <label className="cmp-chip" style={{ cursor: 'pointer' }}><input type="checkbox" checked={starsOn} onChange={(e) => setStarsOn(e.target.checked)} /> {tt('starsBg')}</label>
               <p style={{ fontSize: 12.5 }}>نجوم ذهبية خافتة متحركة خلف الواجهة. تُطفأ تلقائياً عند تفعيل «تقليل الحركة» في جهازك.</p>
               <h3>{tt('plan')}</h3>
-              <select value={plan} onChange={(e) => { setPlan(e.target.value); try { localStorage.setItem('omni_plan', e.target.value); } catch {} }}>
+              <select value={plan} onChange={(e) => { changePlan(e.target.value); if (e.target.value === 'free') { try { localStorage.setItem('omni_plan', 'free'); } catch {} } }}>
                 {Object.entries(PLANS).map(([id, p]) => <option key={id} value={id}>{p.name} — {p.price}</option>)}
               </select>
               <h3>تصدير الجلسة الحالية</h3>
@@ -1421,6 +1724,25 @@ export default function Home() {
           </div>
         );
       })()}
+
+      {/* نافذة الدفع بـ USDT (TRC20) — v1.8: محفظة + QR + بريد + TXID + تحقق حقيقي من السلسلة */}
+      {payPlan && (
+        <div className="modal-back" onClick={() => setPayPlan(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>💎 شراء خطة {PLANS[payPlan].name} — {PLANS[payPlan].usdt} USDT</h2>
+            <p>أرسل المبلغ بالضبط عبر شبكة TRON (TRC20) إلى العنوان التالي، ثم الصق رقم المعاملة (TXID) للتحقق الفوري وتفعيل خطتك لمدة شهر.</p>
+            <div className="qr-box">{payQr ? <img src={payQr} alt="QR لمحفظة USDT" /> : 'جارٍ توليد QR…'}</div>
+            <div className="key-row"><code dir="ltr" style={{ wordBreak: 'break-all' }}>{USDT_WALLET}</code><button className="btn ghost small" onClick={() => copyText(USDT_WALLET, 'wallet')}>{copied === 'wallet' ? '✓ نُسخ' : 'نسخ العنوان'}</button></div>
+            <div className="field"><label>المبلغ (بالضبط)</label><div className="pay-amount"><UsdtLogo /> <b dir="ltr">{PLANS[payPlan].usdt} USDT</b> <span>شبكة TRC20</span></div></div>
+            <div className="field"><label>بريدك الإلكتروني (يُربط به الدفع)</label><input type="email" value={payEmail} onChange={(e) => setPayEmail(e.target.value)} dir="ltr" placeholder="name@email.com" /></div>
+            <div className="field"><label>رقم المعاملة TXID (بعد الدفع)</label><input value={payTxid} onChange={(e) => setPayTxid(e.target.value)} dir="ltr" placeholder="الصق TXID هنا…" /></div>
+            <button className="btn btn-block" onClick={verifyPayment} disabled={payStatus?.state === 'verifying' || !payTxid.trim()}>{payStatus?.state === 'verifying' ? 'جارٍ التحقق من السلسلة…' : 'تحقق من الدفع'}</button>
+            {payStatus && <div className={'note ' + (payStatus.state === 'ok' ? 'green' : '')} style={{ marginTop: 12 }}>{payStatus.state === 'ok' ? '✓ ' : payStatus.state === 'fail' ? '✗ ' : ''}{payStatus.message}</div>}
+            {payStatus?.details?.checks && <div className="pay-checks">{Object.entries(payStatus.details.checks).map(([k, v]) => <div key={k}>{v ? '✓ ' : '✗ '}{CHECK_LABELS[k] || k}</div>)}</div>}
+            <p style={{ marginTop: 12, fontSize: 12.5 }}>التحقق يقرأ سلسلة TRON مباشرة: وجود المعاملة، نجاحها، المستلم، المبلغ بالضبط، وحداثتها (24 ساعة). لا نطلب مفتاحك الخاص أبداً. إن أغلقت النافذة بعد الدفع، يمكنك إعادة فتحها ولصق TXID نفسه لاحقاً (خلال 24 ساعة).</p>
+          </div>
+        </div>
+      )}
 
       {/* نافذة المصادقة — Google OAuth حقيقي + وضع ضيف (v1.7) */}
       {authOpen && (

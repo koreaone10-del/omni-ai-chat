@@ -8,18 +8,63 @@ export const maxDuration = 60;
 
 // POST /api/image — توليد صور بلا أي بديل مجاني عشوائي:
 // (أ) نموذج الصور الخاص بمزود لديه مفتاح محفوظ (DALL·E / FLUX عبر OpenAI أو Together أو Hugging Face)
+// (أ2) Nano Banana من Google — gemini-3.1-flash-image (Nano Banana 2)،
+//      gemini-nano-banana-2.1 (Nano Banana 2.1 — الأحدث الموصى به)،
+//      gemini-3-pro-image (Nano Banana Pro) — عبر generateContent الرسمي:
+//      POST /v1beta/models/{model}:generateContent مع x-goog-api-key و
+//      generationConfig {responseModalities: ['TEXT','IMAGE']}، والصورة في
+//      candidates[0].content.parts[].inlineData.data (base64).
+//      المصدر: https://ai.google.dev/gemini-api/docs/image-generation
+//      (المسار الأحدث Interactions API موجود في الوثائق نفسها، لكن generateContent
+//      هو المسار المستقر الموثق للـ REST — يحتاج مفتاح Gemini للتأكيد الحي.)
 // (ب) راوتر FreeLLMAPI بمفاتيحه الموحدة — يعمل فقط إن أُضيف في لوحة الراوتر مفتاح مزود يقدّم نماذج صور
 //     (مفتاح Groq وحده لا يكفي: Groq نص فقط، والراوتر يردّ 404 على نموذج صور غير موجود في كتالوجه)
 // (ج) مساحة Hugging Face مفتوحة المصدر black-forest-labs/FLUX.1-schnell بدون مفتاح (Gradio)
 // الوصف غير الإنجليزي يُترجم إلى الإنجليزية أولاً (best-effort) لأن نماذج الصور مدرّبة على الإنجليزية.
 // طلب صورة لا يردّ عليه بنص أبداً، ولا بصورة من مسار آخر: إما رابط صورة من المسار المسمّى في via،
 // أو خطأ صريح يسمّي كل مسار جُرّب وسبب فشله.
+// معامل preferred: 'auto' (الترتيب أعلاه) أو نموذج محدد — عند اختيار نموذج محدد
+// من لوحة أدوات المزود يُجرَّب ذلك المسار وحده، وإن غاب مفتاحه يرجع خطأ صريحاً
+// باسم المفتاح المطلوب بدل التبديل الصامت لمسار آخر.
 
 const IMAGE_PROVIDERS = [
   { id: 'openai', label: 'DALL·E 3 (OpenAI)', base: 'https://api.openai.com/v1', model: 'dall-e-3', payload: (prompt, size) => ({ model: 'dall-e-3', prompt, size, n: 1 }) },
   { id: 'together', label: 'FLUX (Together)', base: 'https://api.together.xyz/v1', model: 'black-forest-labs/FLUX.1-schnell-Free', payload: (prompt, size) => { const [w, h] = String(size || '1024x1024').split('x').map(Number); return { model: 'black-forest-labs/FLUX.1-schnell-Free', prompt, width: w || 1024, height: h || 1024, steps: 4, n: 1 }; } },
   { id: 'huggingface', label: 'FLUX (Hugging Face)', base: 'https://router.huggingface.co/v1', model: 'black-forest-labs/FLUX.1-schnell', payload: (prompt, size) => ({ model: 'black-forest-labs/FLUX.1-schnell', prompt, size, n: 1 }) }
 ];
+
+// Nano Banana — نماذج صور Google (مفتاح Gemini من Google AI Studio).
+const NANO_BANANA = {
+  'nanobanana': { model: 'gemini-3.1-flash-image', label: 'Nano Banana 2 (gemini-3.1-flash-image)' },
+  'nanobanana-2.1': { model: 'gemini-nano-banana-2.1', label: 'Nano Banana 2.1 (gemini-nano-banana-2.1)' },
+  'nanobanana-pro': { model: 'gemini-3-pro-image', label: 'Nano Banana Pro (gemini-3-pro-image)' }
+};
+const GEMINI_NATIVE = 'https://generativelanguage.googleapis.com/v1beta';
+
+async function tryNanoBanana(model, key, prompt, ms) {
+  const r = await fetch(GEMINI_NATIVE + '/models/' + encodeURIComponent(model) + ':generateContent', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { responseModalities: ['TEXT', 'IMAGE'] }
+    }),
+    signal: AbortSignal.timeout(ms)
+  });
+  if (!r.ok) {
+    const txt = await r.text().catch(() => '');
+    throw new Error('HTTP ' + r.status + (txt ? ': ' + txt.slice(0, 160) : ''));
+  }
+  const data = await r.json();
+  const parts = data?.candidates?.[0]?.content?.parts || [];
+  for (const part of parts) {
+    if (part?.inlineData?.data) {
+      return 'data:' + (part.inlineData.mimeType || 'image/png') + ';base64,' + part.inlineData.data;
+    }
+  }
+  const text = parts.map((p) => p?.text || '').join(' ').trim();
+  throw new Error(text ? 'النموذج ردّ بنص دون صورة: ' + text.slice(0, 120) : 'no image in response');
+}
 
 const HF_SPACE = 'black-forest-labs/FLUX.1-schnell';
 const HF_ORIGIN = 'https://black-forest-labs-flux-1-schnell.hf.space';
@@ -116,7 +161,7 @@ async function tryHuggingFaceSpace(prompt, size, ms) {
 export async function POST(req) {
   let body;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'طلب غير صالح.' }, { status: 400 }); }
-  const { prompt, apiKeys = {}, flKeys = [], flUrl, size = '1024x1024' } = body;
+  const { prompt, apiKeys = {}, flKeys = [], flUrl, size = '1024x1024', preferred = 'auto' } = body;
   if (!prompt || !String(prompt).trim()) return NextResponse.json({ error: 'اكتب وصفاً للصورة أولاً.' }, { status: 400 });
   const clean = String(prompt).trim();
 
@@ -130,6 +175,51 @@ export async function POST(req) {
   const usePrompt = tr.text;
   const note = tr.translated ? 'الوصف بعد الترجمة إلى الإنجليزية: ' + tr.text : null;
 
+  // نموذج محدد اختاره المستخدم من لوحة أدوات المزود — يُجرَّب وحده، بلا تبديل صامت.
+  if (preferred && preferred !== 'auto') {
+    if (NANO_BANANA[preferred]) {
+      const nb = NANO_BANANA[preferred];
+      const keys = keyList(apiKeys.gemini);
+      if (!keys.length) {
+        return NextResponse.json({ error: nb.label + ' يحتاج مفتاح Google AI Studio (مجاني) — أضفه من مدير المفاتيح تحت اسم «Google Gemini» (aistudio.google.com/apikey)، ثم أعد المحاولة.' }, { status: 402 });
+      }
+      for (const key of keys) {
+        if (timeLeft() <= 3000) break;
+        try {
+          const url = await tryNanoBanana(nb.model, key, usePrompt, Math.min(30000, timeLeft()));
+          return NextResponse.json({ url, via: 'gemini', model: nb.model, free: false, note, translatedPrompt: tr.translated ? tr.text : null });
+        } catch (e) { failures.push(nb.label + ': ' + String(e.message || e)); }
+      }
+      return NextResponse.json({ error: 'تعذّر توليد الصورة عبر ' + nb.label + ':\n' + failures.map((f) => '• ' + f).join('\n') + '\n\nتحقق من مفتاح Gemini في مدير المفاتيح (قد يكون مستنفداً) أو جرّب نموذجاً آخر.' }, { status: 502 });
+    }
+    if (preferred === 'dalle') {
+      const keys = keyList(apiKeys.openai);
+      if (!keys.length) return NextResponse.json({ error: 'DALL·E 3 يحتاج مفتاح OpenAI — أضفه من مدير المفاتيح، ثم أعد المحاولة.' }, { status: 402 });
+      for (const key of keys) {
+        if (timeLeft() <= 3000) break;
+        try {
+          const url = await tryImagesGenerations('https://api.openai.com/v1', key, { model: 'dall-e-3', prompt: usePrompt, size, n: 1 }, Math.min(20000, timeLeft()));
+          return NextResponse.json({ url, via: 'openai', model: 'dall-e-3', free: false, note, translatedPrompt: tr.translated ? tr.text : null });
+        } catch (e) { failures.push('DALL·E 3: ' + String(e.message || e)); }
+      }
+      return NextResponse.json({ error: 'تعذّر توليد الصورة عبر DALL·E 3:\n' + failures.map((f) => '• ' + f).join('\n') }, { status: 502 });
+    }
+    if (preferred === 'flux') {
+      const tried = [];
+      for (const p of IMAGE_PROVIDERS.filter((x) => x.id !== 'openai')) {
+        for (const key of keyList(apiKeys[p.id])) {
+          if (timeLeft() <= 3000) break;
+          try {
+            const url = await tryImagesGenerations(p.base, key, p.payload(usePrompt, size), Math.min(20000, timeLeft()));
+            return NextResponse.json({ url, via: p.id, model: p.model, free: false, note, translatedPrompt: tr.translated ? tr.text : null });
+          } catch (e) { tried.push(p.label + ': ' + String(e.message || e)); }
+        }
+      }
+      return NextResponse.json({ error: 'FLUX يحتاج مفتاح Together أو Hugging Face — أضفه من مدير المفاتيح، ثم أعد المحاولة.' + (tried.length ? '\n' + tried.map((f) => '• ' + f).join('\n') : '') }, { status: 402 });
+    }
+    // preferred غير معروف → تجاهله والمتابعة بالترتيب التلقائي.
+  }
+
   // (أ) مزود صور خاص بمفتاح محفوظ — كل مفاتيح المزود تُجرَّب بالترتيب
   for (const p of IMAGE_PROVIDERS) {
     const keys = keyList(apiKeys[p.id]);
@@ -140,6 +230,22 @@ export async function POST(req) {
         const url = await tryImagesGenerations(p.base, key, p.payload(usePrompt, size), Math.min(20000, timeLeft()));
         return NextResponse.json({ url, via: p.id, free: false, note, translatedPrompt: tr.translated ? tr.text : null });
       } catch (e) { failures.push(p.label + ': ' + String(e.message || e)); }
+    }
+  }
+
+  // (أ2) Nano Banana 2.1 من Google — بمفاتيح Gemini المحفوظة (الأحدث الموصى به)
+  {
+    const nb = NANO_BANANA['nanobanana-2.1'];
+    const keys = keyList(apiKeys.gemini);
+    if (!keys.length) { failures.push(nb.label + ': لا يوجد مفتاح Gemini محفوظ'); }
+    else {
+      for (const key of keys) {
+        if (timeLeft() <= 3000) break;
+        try {
+          const url = await tryNanoBanana(nb.model, key, usePrompt, Math.min(30000, timeLeft()));
+          return NextResponse.json({ url, via: 'gemini', model: nb.model, free: false, note, translatedPrompt: tr.translated ? tr.text : null });
+        } catch (e) { failures.push(nb.label + ': ' + String(e.message || e)); }
+      }
     }
   }
 
