@@ -1,0 +1,40 @@
+# CHIBANI AI — مهام Live الخلفية (v2.1)
+# يُشغَّل عبر repository_dispatch من الموقع (POST /api/jobs) بحدث chibani-job.
+# مجاني: GitHub Actions يعطي 2000 دقيقة/شهر للحسابات المجانية.
+# النتائج تُكتب في فرع `jobs` (لا يلمس main، فلا يعيد نشر Vercel).
+# أسرار اختيارية (Settings → Secrets and variables → Actions):
+#   FREELLMAPI_KEY        — المفتاح الموحد للراوتر (للبحث والتلخيص والكود)
+#   CLOUDFLARE_API_TOKEN  — توكن Workers AI (لتوليد الصور)
+#   CLOUDFLARE_ACCOUNT_ID — رقم حساب Cloudflare
+# بدون الأسرار يعمل العامل بالمسارات المجانية بلا مفتاح (Pollinations) حيث أمكن.
+# حدود صادقة: كل تشغيل بحد أقصى 50 دقيقة؛ المهام الطويلة تُقسَّم إلى مهام أصغر.
+
+name: CHIBANI AI background job
+
+on:
+  repository_dispatch:
+    types: [chibani-job]
+
+run-name: job ${{ github.event.client_payload.jobId }}
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run job
+        run: node scripts/agent-worker.mjs
+        env:
+          JOB_PAYLOAD: ${{ toJson(github.event.client_payload) }}
+          FREELLMAPI_KEY: ${{ secrets.FREELLMAPI_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
