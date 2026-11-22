@@ -19,6 +19,8 @@ export const maxDuration = 60;
 //      هو المسار المستقر الموثق للـ REST — يحتاج مفتاح Gemini للتأكيد الحي.)
 // (ب) راوتر FreeLLMAPI بمفاتيحه الموحدة — يعمل فقط إن أُضيف في لوحة الراوتر مفتاح مزود يقدّم نماذج صور
 //     (مفتاح Groq وحده لا يكفي: Groq نص فقط، والراوتر يردّ 404 على نموذج صور غير موجود في كتالوجه)
+// (ب2) Cloudflare Workers AI — FLUX.1-schnell مجاني (10,000 neuron/يوم، ~57 صورة 1024×1024/يوم)
+//      يحتاج CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN في Vercel (حساب مجاني، بلا بطاقة)
 // (ج) مساحة Hugging Face مفتوحة المصدر black-forest-labs/FLUX.1-schnell بدون مفتاح (Gradio)
 // الوصف غير الإنجليزي يُترجم إلى الإنجليزية أولاً (best-effort) لأن نماذج الصور مدرّبة على الإنجليزية.
 // طلب صورة لا يردّ عليه بنص أبداً، ولا بصورة من مسار آخر: إما رابط صورة من المسار المسمّى في via،
@@ -68,6 +70,31 @@ async function tryNanoBanana(model, key, prompt, ms) {
 
 const HF_SPACE = 'black-forest-labs/FLUX.1-schnell';
 const HF_ORIGIN = 'https://black-forest-labs-flux-1-schnell.hf.space';
+
+// (ب2) Cloudflare Workers AI — FLUX.1-schnell مجاني (10,000 neuron/يوم، بلا بطاقة).
+// يحتاج متغيري بيئة في Vercel: CLOUDFLARE_ACCOUNT_ID و CLOUDFLARE_API_TOKEN
+// (حساب Cloudflare مجاني + توكن بقالب Workers AI Edit) — بلا هذين المتغيرين يُتخطى المسار بصمت.
+// المصدر: https://developers.cloudflare.com/workers-ai/platform/pricing/
+// (بحث 2026-11-22 — انظر research/free-media-apis-2026-11-22.md)
+async function tryCloudflareImage(prompt, ms) {
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const token = process.env.CLOUDFLARE_API_TOKEN;
+  if (!accountId || !token) return null;
+  const r = await fetch('https://api.cloudflare.com/client/v4/accounts/' + accountId + '/ai/run/@cf/black-forest-labs/flux-1-schnell', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+    body: JSON.stringify({ prompt, steps: 4 }),
+    signal: AbortSignal.timeout(ms)
+  });
+  if (!r.ok) {
+    const txt = await r.text().catch(() => '');
+    throw new Error('HTTP ' + r.status + (txt ? ': ' + txt.slice(0, 120) : ''));
+  }
+  const data = await r.json();
+  const b64 = data?.result?.image;
+  if (!b64) throw new Error('no image in response');
+  return 'data:image/jpeg;base64,' + b64;
+}
 const NON_ENGLISH = /[^\x00-\x7F]/;
 
 function extractUrl(data) {
@@ -264,6 +291,17 @@ export async function POST(req) {
     }
   }
 
+  // (ب2) Cloudflare Workers AI — FLUX.1-schnell مجاني (إن ضُبطت مفاتيحه في Vercel)
+  if (timeLeft() > 5000) {
+    try {
+      const url = await tryCloudflareImage(usePrompt, Math.min(30000, timeLeft()));
+      if (url) return NextResponse.json({ url, via: 'cloudflare', free: true, note, translatedPrompt: tr.translated ? tr.text : null });
+      failures.push('Cloudflare Workers AI (مجاني): غير مضبوط — أضف CLOUDFLARE_ACCOUNT_ID و CLOUDFLARE_API_TOKEN في Vercel (حساب Cloudflare مجاني، بلا بطاقة)');
+    } catch (e) {
+      failures.push('Cloudflare Workers AI (مجاني): ' + String(e.message || e).slice(0, 120));
+    }
+  }
+
   // (ج) مساحة FLUX.1-schnell المجانية مفتوحة المصدر — بدون مفتاح
   if (timeLeft() > 5000) {
     try {
@@ -278,6 +316,6 @@ export async function POST(req) {
 
   // فشل صريح: نسمّي كل مسار وسبب فشله، ولا نرجع صورة من مسار آخر أبداً.
   const error = 'تعذّر توليد الصورة. المسارات التي جُرّبت:\n' + failures.map((f) => '• ' + f).join('\n')
-    + '\n\nما يمكنك فعله: أضف مفتاح OpenAI أو Together أو Hugging Face من مدير المفاتيح لصور DALL·E / FLUX بجودة عالية (مفتاح Hugging Face مجاني من huggingface.co/settings/tokens)، أو أضف في لوحة راوتر FreeLLMAPI مفتاح مزود يقدّم نماذج صور، أو أعد المحاولة لاحقاً عبر المسار المجاني بعد تجدد حصته اليومية.';
+    + '\n\nما يمكنك فعله: أضف مفتاح OpenAI أو Together أو Hugging Face من مدير المفاتيح لصور DALL·E / FLUX بجودة عالية (مفتاح Hugging Face مجاني من huggingface.co/settings/tokens)، أو اضبط Cloudflare Workers AI المجاني في Vercel (CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN — حساب مجاني بلا بطاقة، ~57 صورة/يوم)، أو أضف في لوحة راوتر FreeLLMAPI مفتاح مزود يقدّم نماذج صور، أو أعد المحاولة لاحقاً عبر المسار المجاني بعد تجدد حصته اليومية.';
   return NextResponse.json({ error }, { status: 502 });
 }

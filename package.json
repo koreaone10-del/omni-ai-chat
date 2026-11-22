@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@gradio/client": "^2.8.0",
+    "@heyputer/puter.js": "^2.6.5",
     "next": "14.2.5",
     "next-auth": "^4.24.15",
     "qrcode": "^1.5.4",
