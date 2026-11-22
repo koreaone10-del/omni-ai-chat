@@ -11,6 +11,8 @@ import { t, LANGS, isRTL } from '@/lib/i18n';
 import { BUILTIN_SKILLS } from '@/lib/skills';
 import { INTEGRATIONS, INTEGRATION_TEST_ACTION, integrationById } from '@/lib/integrations';
 import { JOB_TYPES, jobTypeById, loadJobs, saveJobs, jobStatusLabel } from '@/lib/jobs';
+import { routeTemperature } from '@/lib/agent-router';
+import { DEFAULT_AGENT_CONFIG, DEFAULT_SYSTEM_PROMPT, TOOLS_STORE, toolDef, normalizeAgentConfig, buildStateLedger, searchKnowledge } from '@/lib/agent-config';
 
 const PLANS = {
   free: { name: 'مجانية', price: '0$', limit: 500000, images: 10, videos: 2, compares: 20, deeps: 10, usdt: PLAN_USDT.free.price, features: PLAN_FEATURES.free },
@@ -273,10 +275,13 @@ export default function Home() {
   // v2.1: خلفية الصورة الشخصية + الوكيل الذكي + مهام Live الخلفية
   const [portraitOn, setPortraitOn] = useState(true);
   const [agentOn, setAgentOn] = useState(false);
-  const [agentCfg, setAgentCfg] = useState({ instructions: '', tools: { chat: true, image: true, video: true, web: true, integrations: true }, memory: [], history: [] });
+  const [agentCfg, setAgentCfg] = useState(() => normalizeAgentConfig({}));
   const [agentRunning, setAgentRunning] = useState(false);
   const [agentTaskInput, setAgentTaskInput] = useState('');
   const [agentMsg, setAgentMsg] = useState('');
+  const [agentTestText, setAgentTestText] = useState('');
+  const [agentNewKey, setAgentNewKey] = useState({ groq: '', fl: '', cf: '', cfAccount: '' });
+  const [cfAccountId, setCfAccountId] = useState('');
   const [jobs, setJobs] = useState([]);
   const [jobType, setJobType] = useState('research');
   const [jobTitle, setJobTitle] = useState('');
@@ -341,8 +346,9 @@ export default function Home() {
       try { const a = JSON.parse(localStorage.getItem('omni_skills_active') || '[]'); if (Array.isArray(a)) setActiveSkills(a); } catch {}
       try { const c = JSON.parse(localStorage.getItem('omni_custom_skills') || '[]'); if (Array.isArray(c)) setCustomSkills(c); } catch {}
       try { const cn = JSON.parse(localStorage.getItem('omni_connections') || '{}'); if (cn && typeof cn === 'object') setConn({ github: cn.github || '', vercel: cn.vercel || '', render: cn.render || '', cloudflare: cn.cloudflare || '', facebook: cn.facebook || '', gmail: cn.gmail || '' }); } catch {}
-      // v2.1: إعدادات الوكيل + مهام Live + خلفية الصورة
-      try { const ac = JSON.parse(localStorage.getItem('omni_agent_cfg') || 'null'); if (ac && typeof ac === 'object') setAgentCfg({ instructions: ac.instructions || '', tools: { chat: true, image: true, video: true, web: true, integrations: true, ...(ac.tools || {}) }, memory: Array.isArray(ac.memory) ? ac.memory : [], history: Array.isArray(ac.history) ? ac.history.slice(0, 10) : [] }); } catch {}
+      // v2.1: إعدادات الوكيل + مهام Live + خلفية الصورة — v2.2: دمج فوق الافتراضية مع تقييد القيم
+      try { const ac = JSON.parse(localStorage.getItem('omni_agent_cfg') || 'null'); if (ac && typeof ac === 'object') setAgentCfg(normalizeAgentConfig(ac)); } catch {}
+      try { setCfAccountId(localStorage.getItem('omni_cf_account_id') || ''); } catch {}
       try { setJobs(loadJobs()); } catch {}
       try { setPortraitOn(localStorage.getItem('omni_portrait') !== '0'); } catch {}
       // وضع المقارنة: يُحمّل بعد المفاتيح لأنه يعتمد عليها
@@ -375,6 +381,7 @@ export default function Home() {
   useEffect(() => { try { localStorage.setItem('omni_custom_skills', JSON.stringify(customSkills)); } catch {} }, [customSkills]);
   useEffect(() => { try { localStorage.setItem('omni_connections', JSON.stringify(conn)); } catch {} }, [conn]);
   useEffect(() => { try { localStorage.setItem('omni_agent_cfg', JSON.stringify(agentCfg)); } catch {} }, [agentCfg]);
+  useEffect(() => { try { localStorage.setItem('omni_cf_account_id', cfAccountId); } catch {} }, [cfAccountId]);
   useEffect(() => { saveJobs(jobs); }, [jobs]);
   useEffect(() => { try { localStorage.setItem('omni_portrait', portraitOn ? '1' : '0'); } catch {} }, [portraitOn]);
   // v2.1: تحديث تلقائي لحالة مهام Live كل 20 ثانية أثناء فتح لوحة Live.
@@ -682,33 +689,96 @@ export default function Home() {
     } catch (e) { setConnStatus((p) => ({ ...p, [svc]: 'fail' })); setConnMsg('تعذّر الاتصال: ' + String(e.message || e)); }
   }
 
-  // ---------- الوكيل الذكي (v2.1) ----------
+  // ---------- الوكيل الذكي (v2.2) ----------
   // يعمل بنماذج موجودة (الراوتر / Groq / Gemini) — ليس نموذجاً مدرّباً من الصفر.
+  // البرومبت النظامي مخزّن ومُصدَّر من المستخدم، لا مكتوب في الكود.
   // يخطط المهمة، ينفّذ خطواتها بأدوات الموقع، ويعرض سجلاً حياً لكل خطوة.
-  function agentSystemPrompt() {
-    const mem = (agentCfg.memory || []).filter(Boolean);
-    return 'You are CHIBANI AI Agent — a careful autonomous agent. ' +
-      (agentCfg.instructions ? 'User-defined behaviour:\n' + agentCfg.instructions.slice(0, 1500) + '\n' : '') +
-      (mem.length ? 'Lessons learned from past tasks (follow them):\n- ' + mem.slice(0, 12).join('\n- ') + '\n' : '') +
-      'Work step by step, verify results, and say plainly when something cannot be done.';
+  function agentSystemPrompt(task = '', ledger = '') {
+    const cfg = agentCfg;
+    const mem = (cfg.memory || []).filter(Boolean);
+    const kb = searchKnowledge(cfg.knowledge || [], task);
+    let sys = (cfg.systemPrompt || DEFAULT_SYSTEM_PROMPT).trim() || DEFAULT_SYSTEM_PROMPT;
+    if (cfg.instructions) sys += '\nUser behaviour instructions:\n' + cfg.instructions.slice(0, 1500);
+    if (mem.length) sys += '\nLessons learned from past tasks (follow them):\n- ' + mem.slice(0, 12).join('\n- ');
+    if (kb.length) sys += '\nReference files (found by in-browser keyword search — no vector database):\n' + kb.map((k) => '### ' + k.name + '\n' + k.snippet).join('\n');
+    if (ledger) sys += '\n' + ledger;
+    return sys;
   }
-  // طلب محادثة واحد غير متدفق للوكيل (نفس مسار المحادثة العادي).
-  async function chatOnce(messages, deep = false) {
+  // سجل استدعاءات الأدوات — للتحقق والمراجعة (يُحفظ في المتصفح فقط).
+  function agentLog(tool, label, status, detail) {
+    setAgentCfg((p) => ({ ...p, log: [{ at: Date.now(), tool, label: String(label || '').slice(0, 120), status, detail: String(detail || '').slice(0, 160) }, ...(p.log || [])].slice(0, 50) }));
+  }
+  // حاجز الأمان: النطاقات المسموح جلبها فقط.
+  function isUrlAllowed(raw) {
+    try {
+      const h = new URL(raw).hostname.toLowerCase().replace(/^www\./, '');
+      return (agentCfg.safety?.whitelist || []).some((w) => h === w || h.endsWith('.' + w));
+    } catch { return false; }
+  }
+  // طلب وكيل واحد متدفق (stream:true — وإلا النبضات تتكدس) بحرارة الموجّه
+  // ومعاملات إعدادات الوكيل. يرجع {content, tokens, fallback} ويستدعي onDelta أثناء البث.
+  async function chatAgentOnce(userMessages, { sys = null, userText = '', onDelta = null } = {}) {
+    const cfg = agentCfg;
+    const rCfg = cfg.router || {};
+    const temp = rCfg.enabled === false
+      ? 0.6
+      : routeTemperature(userText, { bands: { cold: rCfg.cold ?? 0.2, warm: rCfg.warm ?? 0.6, hot: rCfg.hot ?? 0.95 }, coldWords: rCfg.coldWords, hotWords: rCfg.hotWords }).temperature;
+    const rq = cfg.request || {};
+    const sampling = {
+      temperature: temp,
+      top_p: rq.topP ?? 0.95,
+      max_tokens: rq.maxTokens ?? 4096,
+      presence_penalty: rq.presencePenalty ?? 0.1,
+      frequency_penalty: rq.frequencyPenalty ?? 0.2,
+      stop: rq.stop ? rq.stop : undefined,
+      seed: rq.seed === '' || rq.seed == null ? undefined : parseInt(String(rq.seed), 10),
+      reasoning_effort: rq.reasoningEffort || undefined,
+      response_format: rq.responseFormat === 'json_object' ? 'json_object' : undefined
+    };
+    if (sampling.seed != null && !Number.isInteger(sampling.seed)) delete sampling.seed;
     const res = await fetch('/api/chat', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        messages,
-        providerId, model: model || undefined,
+        messages: userMessages,
+        providerId, model: (rq.model || model) || undefined,
         apiKeys: providerId === 'freellmapi' ? { ...keys, freellmapi: flKeyEntries() } : keys,
-        baseURL: flUrl || FL_DEFAULT_URL, deepThinking: deep, lang,
-        skills: activeSkillInstructions()
-      })
+        baseURL: flUrl || FL_DEFAULT_URL, deepThinking: false, lang,
+        skills: activeSkillInstructions(),
+        systemPrompt: sys ?? agentSystemPrompt(userText),
+        sampling, stream: true
+      }),
+      signal: AbortSignal.timeout(120000)
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'فشل الطلب.');
-    return { content: data.content || '', tokens: data.usage?.total_tokens || estimateTokens(data.content || '') };
+    const ct = res.headers.get('content-type') || '';
+    if (!ct.includes('text/event-stream')) {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'فشل الطلب.');
+      return { content: data.content || '', tokens: data.usage?.total_tokens || estimateTokens(data.content || ''), fallback: !!data.fallback };
+    }
+    let content = ''; let reasoning = ''; let usage = null; let fallback = false;
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let idx;
+      while ((idx = buf.indexOf('\n\n')) >= 0) {
+        const block = buf.slice(0, idx); buf = buf.slice(idx + 2);
+        for (const line of block.split('\n')) {
+          if (!line.startsWith('data:')) continue;
+          let ev; try { ev = JSON.parse(line.slice(5).trim()); } catch { continue; }
+          if (ev.type === 'content' && ev.delta) { content += ev.delta; if (onDelta) onDelta(content); }
+          else if (ev.type === 'reasoning' && ev.delta) { reasoning += ev.delta; }
+          else if (ev.type === 'done') { usage = ev.usage; fallback = !!ev.fallback; }
+          else if (ev.type === 'error') throw new Error(ev.error || 'خطأ أثناء البث.');
+        }
+      }
+    }
+    return { content, tokens: usage?.total_tokens || estimateTokens(content), fallback };
   }
-  function parseAgentPlan(text) {
+  function parseAgentPlan(text, cap = 10) {
     const steps = [];
     for (const line of String(text || '').split('\n')) {
       const m = line.match(/^\s*\d+[.)]\s*(?:\[(\w+)\]\s*)?(.+)$/);
@@ -716,7 +786,7 @@ export default function Home() {
         const tool = (m[1] || 'chat').toLowerCase();
         steps.push({ label: m[2].trim().slice(0, 200), tool: ['chat', 'image', 'video', 'web', 'github', 'vercel', 'render', 'cloudflare', 'facebook', 'gmail'].includes(tool) ? tool : 'chat', status: 'pending', detail: '' });
       }
-      if (steps.length >= 6) break;
+      if (steps.length >= cap) break;
     }
     return steps;
   }
@@ -729,6 +799,74 @@ export default function Home() {
     if (t.web) out.push('web');
     if (t.integrations) out.push('github', 'vercel', 'render', 'cloudflare', 'facebook', 'gmail');
     return out.length ? out : ['chat'];
+  }
+  // تصدير/استيراد إعدادات الوكيل (البرومبت + الموجّه + حقول الطلب) — JSON في يد المستخدم.
+  function exportAgentConfig() {
+    try {
+      const blob = new Blob([JSON.stringify({ app: 'CHIBANI AI Agent', version: '2.2', exportedAt: new Date().toISOString(), systemPrompt: agentCfg.systemPrompt, router: agentCfg.router, request: agentCfg.request, agent: agentCfg.agent }, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = 'chibani-agent-config.json'; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      setAgentMsg('✓ تم تصدير إعدادات الوكيل (JSON).');
+    } catch { setAgentMsg('تعذّر التصدير.'); }
+  }
+  function importAgentConfig(e) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    f.text().then((txt) => {
+      try {
+        const d = JSON.parse(txt);
+        setAgentCfg((p) => normalizeAgentConfig({
+          ...p,
+          systemPrompt: typeof d.systemPrompt === 'string' ? d.systemPrompt : p.systemPrompt,
+          router: d.router ? { ...p.router, ...d.router } : p.router,
+          request: d.request ? { ...p.request, ...d.request } : p.request,
+          agent: d.agent ? { ...p.agent, ...d.agent } : p.agent
+        }));
+        setAgentMsg('✓ تم استيراد إعدادات الوكيل.');
+      } catch { setAgentMsg('ملف غير صالح — يجب أن يكون JSON صادراً من إعدادات الوكيل.'); }
+    }).catch(() => setAgentMsg('تعذّرت قراءة الملف.'));
+    e.target.value = '';
+  }
+  // ملفات مرجعية نصية للوكيل (RAG خفيف — بحث نصي داخل المتصفح).
+  async function addKnowledgeFiles(fileList) {
+    const files = [...(fileList || [])].slice(0, 5);
+    for (const f of files) {
+      if (!/\.(txt|md|json)$/i.test(f.name)) { setAgentMsg('تُقبل الملفات النصية فقط (txt / md / json): ' + f.name); continue; }
+      try {
+        const text = await f.text();
+        setAgentCfg((p) => ({ ...p, knowledge: [...(p.knowledge || []), { id: uid(), name: f.name.slice(0, 60), text: String(text).slice(0, 50000) }].slice(0, 5) }));
+      } catch { setAgentMsg('تعذّرت قراءة الملف: ' + f.name); }
+    }
+  }
+  // مفاتيح المزودين من إعدادات الوكيل — نفس أماكن التخزين في مدير المفاتيح
+  // والتكاملات (localStorage في المتصفح فقط)، بلا أي قيمة مكتوبة في الكود.
+  function addAgentGroqKey() {
+    const v = (agentNewKey.groq || '').trim();
+    if (!v) return;
+    setKeys((p) => addKeyToPool(p, 'groq', v));
+    setAgentNewKey((p) => ({ ...p, groq: '' }));
+    setAgentMsg('✓ أُضيف مفتاح Groq إلى تجمع المفاتيح.');
+  }
+  function addAgentFlKey() {
+    const v = (agentNewKey.fl || '').trim();
+    if (!v) return;
+    addFlKey(v);
+    setAgentNewKey((p) => ({ ...p, fl: '' }));
+  }
+  function saveAgentCfToken() {
+    const v = (agentNewKey.cf || '').trim();
+    if (!v) return;
+    setConn((p) => ({ ...p, cloudflare: v }));
+    setAgentNewKey((p) => ({ ...p, cf: '' }));
+    setAgentMsg('✓ حُفظ توكن Cloudflare في التكاملات.');
+  }
+  function saveAgentCfAccount() {
+    const v = (agentNewKey.cfAccount || '').trim();
+    if (!v) return;
+    setCfAccountId(v);
+    setAgentNewKey((p) => ({ ...p, cfAccount: '' }));
+    setAgentMsg('✓ حُفظ معرّف حساب Cloudflare.');
   }
   async function runAgentTask(taskText) {
     const task = (taskText ?? input).trim();
@@ -744,20 +882,36 @@ export default function Home() {
     const updateAgent = (patch) => updateSession(current.id, (s) => ({ ...s, messages: s.messages.map((m) => (m.id === agentId ? { ...m, ...patch } : m)) }));
     let totalTokens = userMsg.tokens;
     const ctxNotes = [];
+    const maxSteps = Math.min(15, Math.max(1, agentCfg.agent?.maxSteps ?? 10));
+    const maxCallsPerTool = Math.min(10, Math.max(1, agentCfg.agent?.maxCallsPerTool ?? 3));
+    const toolCalls = {};
+    const ledger = () => buildStateLedger({ task, steps, notes: ctxNotes, memory: agentCfg.memory || [] });
+    let steps = [];
     try {
       const allowed = agentAllowedTools();
-      const sys = agentSystemPrompt();
-      // الخطوة 0: التخطيط
-      const planRes = await chatOnce([
-        { role: 'system', content: sys },
-        { role: 'user', content: 'المهمة: ' + task + '\n\nقسّمها إلى خطوات مرقمة (3-6 خطوات كحد أقصى). الأدوات المتاحة: ' + allowed.join(', ') + '. اكتب كل خطوة في سطر بهذا الشكل: "1. [chat] ...". أداة image لتوليد صورة، video لفيديو، web لجلب صفحة ويب (اكتب الرابط كاملاً في الخطوة)، وأسماء التكاملات (github/vercel/...) لجلب بياناتها. لا خطوات وهمية.' }
-      ]);
+      const sys = agentSystemPrompt(task);
+      // tool_choice: none — إجابة مباشرة بلا تخطيط ولا أدوات.
+      if (agentCfg.agent?.toolChoice === 'none') {
+        const direct = await chatAgentOnce([{ role: 'user', content: task }], { sys, userText: task, onDelta: (txt) => updateAgent({ content: txt }) });
+        totalTokens += direct.tokens;
+        updateAgent({ steps: [{ label: 'إجابة مباشرة (بلا أدوات)', tool: 'chat', status: 'done', detail: 'tool_choice: none' }], status: 'done', content: direct.content, tokens: totalTokens });
+        setDaily((d) => ({ ...d, tokens: d.tokens + totalTokens }));
+        agentLog('chat', 'إجابة مباشرة', 'done', direct.content.slice(0, 120));
+        if (agentCfg.agent?.storeHistory !== false) setAgentCfg((p) => ({ ...p, history: [{ task: task.slice(0, 80), status: 'done', at: Date.now() }, ...(p.history || [])].slice(0, 10) }));
+        return;
+      }
+      const toolList = allowed.map((id) => { const d = toolDef(id); return d ? id + ' (' + d.desc + ')' : id; }).join('، ');
+      // الخطوة 0: التخطيط (بث حي — يظهر النص في بطاقة الوكيل لحظة بلحظة)
+      const planRes = await chatAgentOnce([
+        { role: 'user', content: 'المهمة: ' + task + '\n\nقسّمها إلى خطوات مرقمة (' + maxSteps + ' خطوات كحد أقصى). الأدوات المتاحة: ' + toolList + '. اكتب كل خطوة في سطر بهذا الشكل: "1. [chat] ...". أداة image لتوليد صورة، video لفيديو، web لجلب صفحة ويب (اكتب الرابط كاملاً في الخطوة، ومن النطاقات المسموحة فقط: ' + (agentCfg.safety?.whitelist || []).join('، ') + ')، وأسماء التكاملات (github/vercel/...) لجلب بياناتها. لا خطوات وهمية.' }
+      ], { sys, userText: task, onDelta: (txt) => updateAgent({ content: txt }) });
       totalTokens += planRes.tokens;
-      let steps = parseAgentPlan(planRes.content);
+      agentLog('chat', 'تخطيط المهمة', 'done', planRes.content.slice(0, 120));
+      steps = parseAgentPlan(planRes.content, maxSteps);
       if (!steps.length) steps = [{ label: 'الإجابة المباشرة عن المهمة', tool: 'chat', status: 'pending', detail: '' }];
       // إسقاط أدوات غير مسموحة من الوكيل
       steps = steps.map((s) => ({ ...s, tool: allowed.includes(s.tool) ? s.tool : 'chat' }));
-      updateAgent({ steps: steps.map((s) => ({ ...s })) });
+      updateAgent({ steps: steps.map((s) => ({ ...s })), content: '' });
       // تنفيذ الخطوات بالتسلسل
       for (let si = 0; si < steps.length; si++) {
         if (daily.tokens + totalTokens >= planInfo.limit) { steps[si] = { ...steps[si], status: 'failed', detail: 'بلغت حد التوكنات اليومي.' }; updateAgent({ steps: steps.map((s) => ({ ...s })) }); break; }
@@ -765,67 +919,78 @@ export default function Home() {
         updateAgent({ steps: steps.map((s) => ({ ...s })) });
         try {
           const st = steps[si];
+          toolCalls[st.tool] = (toolCalls[st.tool] || 0) + 1;
+          if (toolCalls[st.tool] > maxCallsPerTool) throw new Error('بلغ الحد الأقصى لاستدعاءات أداة ' + st.tool + ' (' + maxCallsPerTool + ' في المهمة).');
           let out = '';
           if (st.tool === 'web') {
             const urlMatch = st.label.match(/https?:\/\/[^\s<>"')\]]+/);
             let url = urlMatch ? urlMatch[0] : '';
             if (!url) {
-              const ask = await chatOnce([{ role: 'system', content: sys }, { role: 'user', content: 'لهذه الخطوة من المهمة: "' + st.label + '" (المهمة: ' + task + ') — أعطِ أفضل رابط ويب واحد فقط لقراءته، بلا شرح.' }]);
+              const ask = await chatAgentOnce([
+                { role: 'user', content: 'لهذه الخطوة من المهمة: "' + st.label + '" (المهمة: ' + task + ') — أعطِ أفضل رابط ويب واحد فقط لقراءته، من هذه النطاقات فقط: ' + (agentCfg.safety?.whitelist || []).join('، ') + '، بلا شرح.' }
+              ], { sys: agentSystemPrompt(task, ledger()), userText: task });
               totalTokens += ask.tokens;
               const u2 = (ask.content.match(/https?:\/\/[^\s<>"')\]]+/) || [])[0];
               if (u2) url = u2;
             }
             if (!url) throw new Error('لم يُعثر على رابط لهذه الخطوة.');
-            const fr = await fetch('/api/fetch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) });
+            if (!isUrlAllowed(url)) throw new Error('النطاق غير مسموح في القائمة البيضاء — أضفه من إعدادات الوكيل ← حاجز الأمان.');
+            const fr = await fetch('/api/fetch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }), signal: AbortSignal.timeout((agentCfg.safety?.timeoutSec || 12) * 1000) });
             const fd = await fr.json();
             if (!fr.ok) throw new Error(fd.error || 'فشل جلب الصفحة.');
-            out = 'صفحة: ' + (fd.title || url) + '\n' + String(fd.text || '').slice(0, 3000);
+            out = 'صفحة: ' + (fd.title || url) + '\n' + String(fd.text || '').slice(0, agentCfg.safety?.fetchChars || 3000);
             steps[si] = { ...st, status: 'done', detail: (fd.title || url).slice(0, 120) };
+            agentLog('web', st.label, 'done', fd.title || url);
           } else if (st.tool === 'image') {
             const ir = await fetch('/api/image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: st.label + ' — ' + task, apiKeys: keys, flKeys, flUrl }) });
             const id = await ir.json();
             if (!ir.ok) throw new Error(id.error || 'فشل توليد الصورة.');
             out = 'صورة مولّدة عبر ' + (id.via || 'المسار المجاني');
             steps[si] = { ...st, status: 'done', detail: out, imageUrl: id.url && String(id.url).startsWith('http') ? id.url : undefined };
+            agentLog('image', st.label, 'done', out);
           } else if (st.tool === 'video') {
             const vr = await fetch('/api/video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: st.label + ' — ' + task, apiKeys: keys }) });
             const vd = await vr.json();
             if (!vr.ok) throw new Error(vd.error || 'فشل توليد الفيديو.');
             out = vd.url ? 'فيديو مولّد: ' + vd.url : 'فيديو قيد التوليد — المهمة ' + String(vd.jobId || '').slice(0, 8);
             steps[si] = { ...st, status: 'done', detail: out.slice(0, 140), videoUrl: vd.url || undefined };
+            agentLog('video', st.label, 'done', out);
           } else if (['github', 'vercel', 'render', 'cloudflare', 'facebook', 'gmail'].includes(st.tool)) {
             const ctx = await connectionContextFor(st.label + ' ' + task);
             if (!ctx) throw new Error('التكامل ' + st.tool + ' غير موصول أو لا توجد بيانات — أضف توكنه من «التكاملات».');
             out = ctx.slice(0, 3000);
             steps[si] = { ...st, status: 'done', detail: 'بيانات حقيقية من ' + st.tool };
+            agentLog(st.tool, st.label, 'done', 'بيانات حقيقية');
           } else {
-            const cr = await chatOnce([
-              { role: 'system', content: sys },
+            const cr = await chatAgentOnce([
               { role: 'user', content: 'المهمة: ' + task + '\nالخطوة الحالية: ' + st.label + '\nنتائج الخطوات السابقة:\n' + (ctxNotes.join('\n') || 'لا شيء بعد.') + '\n\nنفّذ هذه الخطوة فقط، باختصار ودقة.' }
-            ]);
+            ], { sys: agentSystemPrompt(task, ledger()), userText: task });
             totalTokens += cr.tokens;
             out = cr.content;
             steps[si] = { ...st, status: 'done', detail: String(cr.content || '').replace(/\s+/g, ' ').slice(0, 160) };
+            agentLog('chat', st.label, 'done', String(cr.content || '').slice(0, 120));
           }
           if (out) ctxNotes.push('- ' + steps[si].label + ':\n' + String(out).slice(0, 2500));
         } catch (e) {
           steps[si] = { ...steps[si], status: 'failed', detail: String(e.message || e).slice(0, 140) };
           ctxNotes.push('- ' + steps[si].label + ': (فشلت — ' + String(e.message || e).slice(0, 120) + ')');
+          agentLog(steps[si].tool, steps[si].label, 'failed', String(e.message || e).slice(0, 140));
         }
         updateAgent({ steps: steps.map((s) => ({ ...s })) });
       }
-      // الخلاصة النهائية
-      const fin = await chatOnce([
-        { role: 'system', content: sys },
+      // الخلاصة النهائية (بث حي)
+      const fin = await chatAgentOnce([
         { role: 'user', content: 'المهمة: ' + task + '\n\nنتائج الخطوات:\n' + (ctxNotes.join('\n') || 'لا نتائج.') + '\n\nاكتب الإجابة النهائية المنظمة للمستخدم بالعربية، مع ذكر ما فشل إن وُجد.' }
-      ]);
+      ], { sys: agentSystemPrompt(task, ledger()), userText: task, onDelta: (txt) => updateAgent({ content: txt }) });
       totalTokens += fin.tokens;
       updateAgent({ steps: steps.map((s) => ({ ...s })), status: 'done', content: fin.content, tokens: totalTokens });
       setDaily((d) => ({ ...d, tokens: d.tokens + totalTokens }));
-      setAgentCfg((p) => ({ ...p, history: [{ task: task.slice(0, 80), status: 'done', at: Date.now() }, ...(p.history || [])].slice(0, 10) }));
+      agentLog('chat', 'الإجابة النهائية', 'done', fin.content.slice(0, 120));
+      if (agentCfg.agent?.storeHistory !== false) setAgentCfg((p) => ({ ...p, history: [{ task: task.slice(0, 80), status: 'done', at: Date.now() }, ...(p.history || [])].slice(0, 10) }));
     } catch (e) {
       updateAgent({ status: 'failed', content: 'تعذّر إكمال المهمة: ' + String(e.message || e).slice(0, 200), tokens: totalTokens });
-      setAgentCfg((p) => ({ ...p, history: [{ task: task.slice(0, 80), status: 'failed', at: Date.now() }, ...(p.history || [])].slice(0, 10) }));
+      agentLog('chat', 'المهمة', 'failed', String(e.message || e).slice(0, 140));
+      if (agentCfg.agent?.storeHistory !== false) setAgentCfg((p) => ({ ...p, history: [{ task: task.slice(0, 80), status: 'failed', at: Date.now() }, ...(p.history || [])].slice(0, 10) }));
     } finally {
       setLoading(false); setAgentRunning(false);
     }
@@ -2562,6 +2727,118 @@ export default function Home() {
                   <small style={{ color: 'var(--muted)' }}>{h.at ? new Date(h.at).toLocaleString('ar') : ''}</small>
                 </div>
               ))}
+
+              {/* إعدادات الوكيل الخاصة (v2.2) — البرومبت النظامي، الموجّه، حقول الطلب، مخزن الأدوات، المعرفة، الأمان، السجل، المفاتيح */}
+              <h3 className="agent-sec">📜 {tt('agentSysPrompt')}</h3>
+              <p style={{ fontSize: 12.5 }}>{tt('agentSysPromptNote')}</p>
+              <div className="field"><textarea value={agentCfg.systemPrompt || ''} onChange={(e) => setAgentCfg((p) => ({ ...p, systemPrompt: e.target.value.slice(0, 20000) }))} rows={4} dir="ltr" placeholder="You are CHIBANI AI Agent…" /></div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 6 }}>
+                <span className={'char-count' + ((agentCfg.systemPrompt || '').length > 8000 ? ' warn' : '')}>{(agentCfg.systemPrompt || '').length} {tt('agentChars')}</span>
+                {(agentCfg.systemPrompt || '').length > 8000 && <span className="char-count warn">⚠ {tt('agentCharsWarn')}</span>}
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button className="btn ghost small" onClick={exportAgentConfig}>⬇ {tt('agentExport')}</button>
+                <label className="btn ghost small" style={{ cursor: 'pointer' }}>⬆ {tt('agentImport')}<input type="file" accept=".json" style={{ display: 'none' }} onChange={importAgentConfig} /></label>
+                <button className="btn ghost small" onClick={() => { setAgentCfg((p) => ({ ...p, systemPrompt: DEFAULT_SYSTEM_PROMPT })); setAgentMsg('✓ أُعيد البرومبت الافتراضي.'); }}>{tt('agentResetPrompt')}</button>
+                <button className="btn ghost small" onClick={() => copyText(agentCfg.systemPrompt || '', 'agent-prompt')}>{copied === 'agent-prompt' ? '✓ تم النسخ' : '📋 نسخ البرومبت'}</button>
+              </div>
+
+              <h3 className="agent-sec">🌡 {tt('agentRouter')}</h3>
+              <p style={{ fontSize: 12.5 }}>{tt('agentRouterNote')}</p>
+              <label className="cmp-chip" style={{ cursor: 'pointer', marginBottom: 8 }}><input type="checkbox" checked={agentCfg.router?.enabled !== false} onChange={(e) => setAgentCfg((p) => ({ ...p, router: { ...p.router, enabled: e.target.checked } }))} /> {tt('agentRouter')}</label>
+              <div className="agent-grid">
+                <div className="field"><label>{tt('agentBandCold')}</label><input type="number" step="0.05" min="0" max="2" value={agentCfg.router?.cold ?? 0.2} onChange={(e) => { const v = parseFloat(e.target.value); if (Number.isFinite(v)) setAgentCfg((p) => ({ ...p, router: { ...p.router, cold: v } })); }} /></div>
+                <div className="field"><label>{tt('agentBandWarm')}</label><input type="number" step="0.05" min="0" max="2" value={agentCfg.router?.warm ?? 0.6} onChange={(e) => { const v = parseFloat(e.target.value); if (Number.isFinite(v)) setAgentCfg((p) => ({ ...p, router: { ...p.router, warm: v } })); }} /></div>
+                <div className="field"><label>{tt('agentBandHot')}</label><input type="number" step="0.05" min="0" max="2" value={agentCfg.router?.hot ?? 0.95} onChange={(e) => { const v = parseFloat(e.target.value); if (Number.isFinite(v)) setAgentCfg((p) => ({ ...p, router: { ...p.router, hot: v } })); }} /></div>
+              </div>
+              <div className="field"><label>{tt('agentColdWords')}</label><textarea value={(agentCfg.router?.coldWords || []).join(', ')} onChange={(e) => setAgentCfg((p) => ({ ...p, router: { ...p.router, coldWords: e.target.value.split(',').map((w) => w.trim()).filter(Boolean) } }))} rows={2} dir="ltr" /></div>
+              <div className="field"><label>{tt('agentHotWords')}</label><textarea value={(agentCfg.router?.hotWords || []).join(', ')} onChange={(e) => setAgentCfg((p) => ({ ...p, router: { ...p.router, hotWords: e.target.value.split(',').map((w) => w.trim()).filter(Boolean) } }))} rows={2} dir="ltr" /></div>
+              <div className="field"><label>{tt('agentRouterTest')}</label>
+                <input value={agentTestText} onChange={(e) => setAgentTestText(e.target.value)} placeholder={tt('agentRouterTestPh')} />
+                {agentTestText.trim() ? (() => { const r = routeTemperature(agentTestText, { bands: { cold: agentCfg.router?.cold ?? 0.2, warm: agentCfg.router?.warm ?? 0.6, hot: agentCfg.router?.hot ?? 0.95 }, coldWords: agentCfg.router?.coldWords, hotWords: agentCfg.router?.hotWords }); return <div style={{ marginTop: 6, fontSize: 13 }}>{tt('agentTempIs')} <b>{r.temperature}</b> ({r.band === 'cold' ? tt('agentBandCold') : r.band === 'hot' ? tt('agentBandHot') : tt('agentBandWarm')})</div>; })() : null}
+              </div>
+
+              <h3 className="agent-sec">⚙️ {tt('agentRequest')}</h3>
+              <div className="agent-grid">
+                <div className="field"><label>{tt('agentModel')}</label><input value={agentCfg.request?.model || ''} onChange={(e) => setAgentCfg((p) => ({ ...p, request: { ...p.request, model: e.target.value.slice(0, 120) } }))} dir="ltr" placeholder={model || '—'} /></div>
+                <div className="field"><label>{tt('agentMaxTokens')}</label><input type="number" step="256" min="256" max="32000" value={agentCfg.request?.maxTokens ?? 4096} onChange={(e) => { const v = parseInt(e.target.value, 10); if (Number.isFinite(v)) setAgentCfg((p) => ({ ...p, request: { ...p.request, maxTokens: v } })); }} /></div>
+                <div className="field"><label>top_p</label><input type="number" step="0.05" min="0.01" max="1" value={agentCfg.request?.topP ?? 0.95} onChange={(e) => { const v = parseFloat(e.target.value); if (Number.isFinite(v)) setAgentCfg((p) => ({ ...p, request: { ...p.request, topP: v } })); }} /></div>
+                <div className="field"><label>presence_penalty</label><input type="number" step="0.1" min="-2" max="2" value={agentCfg.request?.presencePenalty ?? 0.1} onChange={(e) => { const v = parseFloat(e.target.value); if (Number.isFinite(v)) setAgentCfg((p) => ({ ...p, request: { ...p.request, presencePenalty: v } })); }} /></div>
+                <div className="field"><label>frequency_penalty</label><input type="number" step="0.1" min="-2" max="2" value={agentCfg.request?.frequencyPenalty ?? 0.2} onChange={(e) => { const v = parseFloat(e.target.value); if (Number.isFinite(v)) setAgentCfg((p) => ({ ...p, request: { ...p.request, frequencyPenalty: v } })); }} /></div>
+                <div className="field"><label>{tt('agentStop')}</label><input value={agentCfg.request?.stop || ''} onChange={(e) => setAgentCfg((p) => ({ ...p, request: { ...p.request, stop: e.target.value.slice(0, 200) } }))} dir="ltr" placeholder="###, END" /></div>
+                <div className="field"><label>{tt('agentSeed')}</label><input value={agentCfg.request?.seed || ''} onChange={(e) => setAgentCfg((p) => ({ ...p, request: { ...p.request, seed: e.target.value.replace(/[^0-9-]/g, '').slice(0, 20) } }))} dir="ltr" inputMode="numeric" placeholder="—" /></div>
+                <div className="field"><label>reasoning_effort</label><select value={agentCfg.request?.reasoningEffort || ''} onChange={(e) => setAgentCfg((p) => ({ ...p, request: { ...p.request, reasoningEffort: e.target.value } }))}><option value="">— {tt('agentAuto')} —</option><option value="low">low</option><option value="medium">medium</option><option value="high">high</option></select></div>
+                <div className="field"><label>{tt('agentResponseFormat')}</label><select value={agentCfg.request?.responseFormat || 'text'} onChange={(e) => setAgentCfg((p) => ({ ...p, request: { ...p.request, responseFormat: e.target.value } }))}><option value="text">{tt('agentText')}</option><option value="json_object">JSON (json_object)</option></select></div>
+              </div>
+
+              <h3 className="agent-sec">🧰 {tt('agentToolsStore')}</h3>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                {TOOLS_STORE.map((tool) => {
+                  const on = ['chat', 'image', 'video', 'web'].includes(tool.id) ? !!agentCfg.tools?.[tool.id] : !!agentCfg.tools?.integrations;
+                  return <button key={tool.id} className={'cmp-chip' + (on ? ' on' : '')} onClick={() => setAgentCfg((p) => ({ ...p, tools: ['chat', 'image', 'video', 'web'].includes(tool.id) ? { ...p.tools, [tool.id]: !p.tools[tool.id] } : { ...p.tools, integrations: !p.tools.integrations } }))}>{tool.name}</button>;
+                })}
+              </div>
+              {TOOLS_STORE.map((tool) => (
+                <details key={tool.id} style={{ marginBottom: 6 }}>
+                  <summary style={{ cursor: 'pointer', fontSize: 13.5 }}><b>{tool.name}</b> · {tool.desc} · ⏱ {tool.timeoutSec}ث</summary>
+                  <pre className="schema-box">{JSON.stringify(tool.schema, null, 2)}</pre>
+                </details>
+              ))}
+              <div className="agent-grid" style={{ marginTop: 8 }}>
+                <div className="field"><label>tool_choice</label><select value={agentCfg.agent?.toolChoice || 'auto'} onChange={(e) => setAgentCfg((p) => ({ ...p, agent: { ...p.agent, toolChoice: e.target.value } }))}><option value="auto">auto</option><option value="none">none ({tt('agentDirectOnly')})</option></select></div>
+                <div className="field"><label>{tt('agentMaxSteps')}</label><input type="number" min="1" max="15" value={agentCfg.agent?.maxSteps ?? 10} onChange={(e) => { const v = parseInt(e.target.value, 10); if (Number.isFinite(v)) setAgentCfg((p) => ({ ...p, agent: { ...p.agent, maxSteps: v } })); }} /></div>
+                <div className="field"><label>{tt('agentMaxCalls')}</label><input type="number" min="1" max="10" value={agentCfg.agent?.maxCallsPerTool ?? 3} onChange={(e) => { const v = parseInt(e.target.value, 10); if (Number.isFinite(v)) setAgentCfg((p) => ({ ...p, agent: { ...p.agent, maxCallsPerTool: v } })); }} /></div>
+              </div>
+              <label className="cmp-chip" style={{ cursor: 'pointer' }}><input type="checkbox" checked={agentCfg.agent?.parallelToolCalls !== false} onChange={(e) => setAgentCfg((p) => ({ ...p, agent: { ...p.agent, parallelToolCalls: e.target.checked } }))} /> {tt('agentParallel')}</label>
+              <p style={{ fontSize: 12.5 }}>البث (stream) مفعّل دائماً للوكيل — بدونه تتكدس النبضات ولا يظهر التقدم لحظة بلحظة.</p>
+
+              <h3 className="agent-sec">📚 {tt('agentKnowledge')}</h3>
+              <p style={{ fontSize: 12.5 }}>{tt('agentKnowledgeNote')}</p>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                <label className="btn ghost small" style={{ cursor: 'pointer' }}>⬆ {tt('agentUploadRef')}<input type="file" multiple accept=".txt,.md,.json" style={{ display: 'none' }} onChange={(e) => addKnowledgeFiles(e.target.files)} /></label>
+              </div>
+              {(!agentCfg.knowledge || agentCfg.knowledge.length === 0) ? <p>لا ملفات مرجعية بعد.</p> : agentCfg.knowledge.map((k) => (
+                <div key={k.id} className="key-row">
+                  <span style={{ flex: 1 }}>📄 {k.name} <small style={{ color: 'var(--muted)' }}>· {(k.text || '').length} حرف</small></span>
+                  <button className="btn danger small" onClick={() => setAgentCfg((p) => ({ ...p, knowledge: p.knowledge.filter((x) => x.id !== k.id) }))}>حذف</button>
+                </div>
+              ))}
+
+              <h3 className="agent-sec">🛡 {tt('agentSafety')}</h3>
+              <div className="field"><label>{tt('agentWhitelist')}</label><textarea value={(agentCfg.safety?.whitelist || []).join('\n')} onChange={(e) => setAgentCfg((p) => ({ ...p, safety: { ...p.safety, whitelist: e.target.value.split('\n').map((w) => w.trim().toLowerCase()).filter(Boolean) } }))} rows={3} dir="ltr" /></div>
+              <div className="agent-grid">
+                <div className="field"><label>{tt('agentFetchChars')}</label><input type="number" step="500" min="500" max="8000" value={agentCfg.safety?.fetchChars ?? 3000} onChange={(e) => { const v = parseInt(e.target.value, 10); if (Number.isFinite(v)) setAgentCfg((p) => ({ ...p, safety: { ...p.safety, fetchChars: v } })); }} /></div>
+                <div className="field"><label>{tt('agentTimeout')}</label><input type="number" min="5" max="60" value={agentCfg.safety?.timeoutSec ?? 12} onChange={(e) => { const v = parseInt(e.target.value, 10); if (Number.isFinite(v)) setAgentCfg((p) => ({ ...p, safety: { ...p.safety, timeoutSec: v } })); }} /></div>
+              </div>
+
+              <h3 className="agent-sec">📋 {tt('agentLog')}</h3>
+              <div style={{ marginBottom: 8 }}><button className="btn ghost small" onClick={() => setAgentCfg((p) => ({ ...p, log: [] }))}>{tt('agentClearLog')}</button></div>
+              {(!agentCfg.log || agentCfg.log.length === 0) ? <p>لا استدعاءات مسجلة بعد.</p> : (
+                <div className="log-panel">
+                  {agentCfg.log.map((l, li) => (
+                    <div key={li} className="log-row">{l.status === 'done' ? '✓' : '✗'} <b>{l.tool}</b> — {l.label} <small style={{ color: 'var(--muted)' }}>{l.at ? new Date(l.at).toLocaleTimeString('ar') : ''}</small><br /><span style={{ color: 'var(--muted)' }}>{l.detail}</span></div>
+                  ))}
+                </div>
+              )}
+
+              <h3 className="agent-sec">🔑 {tt('agentKeys')}</h3>
+              <p style={{ fontSize: 12.5 }}>{tt('agentKeysNote')}</p>
+              <div className="field"><label>{tt('agentGroqKey')} {(keys.groq || []).length ? '· ✓ ' + keys.groq.length + ' محفوظ' : ''}</label>
+                <div style={{ display: 'flex', gap: 8 }}><input style={{ flex: 1 }} type="password" value={agentNewKey.groq} onChange={(e) => setAgentNewKey((p) => ({ ...p, groq: e.target.value }))} dir="ltr" placeholder="gsk_…" autoComplete="off" /><button className="btn small" onClick={addAgentGroqKey}>إضافة</button></div>
+              </div>
+              <div className="field"><label>{tt('agentFlKey')} {flKeys.length ? '· ✓ ' + flKeys.length + ' محفوظ' : ''}</label>
+                <div style={{ display: 'flex', gap: 8 }}><input style={{ flex: 1 }} type="password" value={agentNewKey.fl} onChange={(e) => setAgentNewKey((p) => ({ ...p, fl: e.target.value }))} dir="ltr" placeholder="freellmapi-…" autoComplete="off" /><button className="btn small" onClick={addAgentFlKey}>إضافة</button></div>
+              </div>
+              <div className="field"><label>{tt('agentCfToken')} {conn.cloudflare ? '· ✓ محفوظ' : ''}</label>
+                <div style={{ display: 'flex', gap: 8 }}><input style={{ flex: 1 }} type="password" value={agentNewKey.cf} onChange={(e) => setAgentNewKey((p) => ({ ...p, cf: e.target.value }))} dir="ltr" placeholder="توكن Cloudflare API" autoComplete="off" /><button className="btn small" onClick={saveAgentCfToken}>حفظ</button></div>
+              </div>
+              <div className="field"><label>{tt('agentCfAccount')} {cfAccountId ? '· ✓ محفوظ' : ''}</label>
+                <div style={{ display: 'flex', gap: 8 }}><input style={{ flex: 1 }} value={agentNewKey.cfAccount} onChange={(e) => setAgentNewKey((p) => ({ ...p, cfAccount: e.target.value }))} dir="ltr" placeholder="معرّف الحساب (Account ID)" autoComplete="off" /><button className="btn small" onClick={saveAgentCfAccount}>حفظ</button></div>
+              </div>
+
+              <h3 className="agent-sec">💾 {tt('agentStore')}</h3>
+              <label className="cmp-chip" style={{ cursor: 'pointer' }}><input type="checkbox" checked={agentCfg.agent?.storeHistory !== false} onChange={(e) => setAgentCfg((p) => ({ ...p, agent: { ...p.agent, storeHistory: e.target.checked } }))} /> {tt('agentStore')}</label>
+              <p style={{ fontSize: 12.5 }}>{tt('agentSessionId')}: <code dir="ltr">{agentCfg.sessionId || '—'}</code> · {tt('agentMetadataNote')}</p>
             </>)}
 
             {drawer === 'live' && (<>

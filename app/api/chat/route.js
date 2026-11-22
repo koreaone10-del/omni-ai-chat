@@ -14,14 +14,76 @@ export const maxDuration = 60; // البث قد يستغرق حتى دقيقة �
 // التفكير والمحتوى لحظة بلحظة. stream: false/غائب → JSON كامل كما قبل
 // (يستعمله وضع المقارنة). عند فشل البث لكل المزودين يرجع JSON 502 بالمحاولات.
 
-function buildSystemExtra({ deepThinking, lang, skills }) {
+function buildLangRule(lang) {
   const langName = { ar: 'Arabic', en: 'English', fr: 'French', es: 'Spanish', de: 'German', tr: 'Turkish', ru: 'Russian', zh: 'Chinese', hi: 'Hindi', pt: 'Portuguese', it: 'Italian', id: 'Indonesian' }[lang] || 'Arabic';
-  const langRule = 'Always answer in ' + langName + ' unless the user explicitly asks for another language.';
+  return 'Always answer in ' + langName + ' unless the user explicitly asks for another language.';
+}
+
+function buildSystemExtra({ deepThinking, lang, skills }) {
+  const langRule = buildLangRule(lang);
   const skillText = (Array.isArray(skills) ? skills : []).filter(Boolean).map((x) => String(x).slice(0, 800)).join('\n');
   const skillRule = skillText ? '\n\nActive skills — follow them:\n' + skillText : '';
   return (deepThinking
     ? 'فكّر خطوة بخطوة بعمق قبل الإجابة. ابدأ إجابتك بقسم قصير بعنوان "التفكير:" يلخّص خطوات تفكيرك (3-6 أسطر)، ثم ضع الإجابة النهائية بعد سطر "الإجابة:".'
     : 'أجب بدقة وبشكل مباشر ومنظّم.') + '\n' + langRule + skillRule;
+}
+
+// حقول الطلب (v2.2 — إعدادات الوكيل): تُمرَّر للمزود حيث يدعمها، وتُحذف
+// الصامتة غير المدعومة عند رفض 400 ثم تُعاد المحاولة بحد أدنى (لا ادعاء دعم).
+function sanitizeSampling(s = {}) {
+  const out = {};
+  if (typeof s.temperature === 'number' && s.temperature >= 0 && s.temperature <= 2) out.temperature = s.temperature;
+  if (typeof s.top_p === 'number' && s.top_p > 0 && s.top_p <= 1) out.top_p = s.top_p;
+  if (Number.isInteger(s.max_tokens) && s.max_tokens > 0) out.max_tokens = Math.min(s.max_tokens, 32000);
+  if (typeof s.presence_penalty === 'number' && s.presence_penalty >= -2 && s.presence_penalty <= 2) out.presence_penalty = s.presence_penalty;
+  if (typeof s.frequency_penalty === 'number' && s.frequency_penalty >= -2 && s.frequency_penalty <= 2) out.frequency_penalty = s.frequency_penalty;
+  if (s.stop) {
+    const arr = Array.isArray(s.stop) ? s.stop.map((x) => String(x)) : String(s.stop).split(',').map((x) => x.trim());
+    const clean = arr.filter(Boolean).slice(0, 4);
+    if (clean.length) out.stop = clean;
+  }
+  if (Number.isInteger(s.seed)) out.seed = s.seed;
+  if (['low', 'medium', 'high'].includes(s.reasoning_effort)) out.reasoning_effort = s.reasoning_effort;
+  if (s.response_format === 'json_object') out.response_format = { type: 'json_object' };
+  return out;
+}
+
+// يبني حمولة الطلب + نسخة دنيا للتراجع عند 400. hasAdvanced = حقول تتجاوز
+// model/messages/temperature/stream (هي التي قد يرفضها مزود ما).
+function buildChatPayload({ model, systemContent, messages, stream, sampling = {} }) {
+  const adv = sanitizeSampling(sampling);
+  const payload = {
+    model,
+    messages: [{ role: 'system', content: systemContent }, ...messages.map((m) => ({ role: m.role, content: m.content }))],
+    stream: !!stream
+  };
+  payload.temperature = adv.temperature != null ? adv.temperature : 0.7;
+  for (const k of ['top_p', 'max_tokens', 'presence_penalty', 'frequency_penalty', 'stop', 'seed', 'reasoning_effort', 'response_format']) {
+    if (adv[k] != null) payload[k] = adv[k];
+  }
+  if (stream) payload.stream_options = { include_usage: true };
+  const minimal = { model, messages: payload.messages, temperature: payload.temperature, stream: !!stream };
+  const hasAdvanced = Object.keys(adv).some((k) => k !== 'temperature') || !!payload.stream_options;
+  return { payload, minimal, hasAdvanced };
+}
+
+// طلب واحد مع تراجع واحد عند 400: يعيد {r, fallback}.
+async function postChatCompletion(url, headers, built, timeoutMs) {
+  let r = await fetch(url, {
+    method: 'POST', headers,
+    body: JSON.stringify(built.payload),
+    signal: AbortSignal.timeout(timeoutMs)
+  });
+  if (!r.ok && r.status === 400 && built.hasAdvanced) {
+    const firstErr = await r.text().catch(() => '');
+    r = await fetch(url, {
+      method: 'POST', headers,
+      body: JSON.stringify(built.minimal),
+      signal: AbortSignal.timeout(timeoutMs)
+    });
+    return { r, fallback: true, firstError: String(firstErr || '').slice(0, 200) };
+  }
+  return { r, fallback: false };
 }
 
 // يبني استجابة SSE من دالة تُصدر الأحداث عبر emit(obj).
@@ -77,7 +139,7 @@ async function pipeUpstreamToSse(r, emit, meta) {
     }
     buf += decoder.decode();
     for (const line of buf.split('\n')) handleLine(line.trim());
-    emit({ type: 'done', usage, modelUsed, providerUsed: meta.providerUsed, keyIndex: meta.keyIndex });
+    emit({ type: 'done', usage, modelUsed, providerUsed: meta.providerUsed, keyIndex: meta.keyIndex, fallback: !!meta.fallback });
     return true;
   }
   // المزود تجاهل stream:true وردّ JSON كاملاً — نبثّه مقطّعاً حتى يعمل العميل بالطريقة نفسها.
@@ -87,12 +149,16 @@ async function pipeUpstreamToSse(r, emit, meta) {
   const reasoning = choice?.reasoning_content || data.choices?.[0]?.reasoning || null;
   if (reasoning) emit({ type: 'reasoning', delta: reasoning });
   for (const c of (content.match(/[\s\S]{1,60}/g) || [])) emit({ type: 'content', delta: c });
-  emit({ type: 'done', usage: data.usage || null, modelUsed: data.model || meta.model, providerUsed: meta.providerUsed, keyIndex: meta.keyIndex });
+  emit({ type: 'done', usage: data.usage || null, modelUsed: data.model || meta.model, providerUsed: meta.providerUsed, keyIndex: meta.keyIndex, fallback: !!meta.fallback });
   return true;
 }
 
-async function handleStream({ messages, providerId, model, apiKeys, customBase, deepThinking, lang, skills }) {
-  const systemExtra = buildSystemExtra({ deepThinking, lang, skills });
+async function handleStream({ messages, providerId, model, apiKeys, customBase, deepThinking, lang, skills, systemPrompt, sampling }) {
+  // البرومبت النظامي للوكيل (v2.2) يقدَّم على قاعدة النظام العادية: إن وُجد،
+  // يصبح هو رسالة system مع قاعدة اللغة فقط.
+  const systemContent = systemPrompt && String(systemPrompt).trim()
+    ? String(systemPrompt).trim() + '\n' + buildLangRule(lang)
+    : buildSystemExtra({ deepThinking, lang, skills });
   const attempts = [];
   const providerIds = providerId === 'auto' ? AUTO_ORDER : [providerId];
 
@@ -128,26 +194,17 @@ async function handleStream({ messages, providerId, model, apiKeys, customBase, 
 
     for (const k of keyList) {
       try {
-        const payload = {
-          model: mdl,
-          messages: [{ role: 'system', content: systemExtra }, ...messages.map((m) => ({ role: m.role, content: m.content }))],
-          temperature: 0.7,
-          stream: true,
-          stream_options: { include_usage: true }
-        };
-        const r = await fetch(base.replace(/\/$/, '') + '/chat/completions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...(k.value ? { Authorization: 'Bearer ' + k.value } : {}) },
-          body: JSON.stringify(payload),
-          signal: AbortSignal.timeout(120000)
-        });
+        const built = buildChatPayload({ model: mdl, systemContent, messages, stream: true, sampling });
+        const { r, fallback } = await postChatCompletion(base.replace(/\/$/, '') + '/chat/completions', {
+          'Content-Type': 'application/json', ...(k.value ? { Authorization: 'Bearer ' + k.value } : {})
+        }, built, 120000);
         if (!r.ok) {
           const txt = await r.text().catch(() => '');
           const err = new Error(`المزود ردّ بالحالة ${r.status}: ${txt.slice(0, 200)}`);
           err.status = r.status;
           throw err;
         }
-        const meta = { providerUsed: pid, keyIndex: k.index, model: mdl };
+        const meta = { providerUsed: pid, keyIndex: k.index, model: mdl, fallback };
         return sseResponse((emit) => pipeUpstreamToSse(r, emit, meta));
       } catch (e) {
         attempts.push({ provider: pid, keyIndex: k.index, error: String(e.message || e), status: e.status || null });
@@ -168,18 +225,20 @@ async function handleStream({ messages, providerId, model, apiKeys, customBase, 
 export async function POST(req) {
   let body;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'طلب غير صالح (JSON).' }, { status: 400 }); }
-  const { messages = [], providerId = 'auto', model, apiKeys = {}, baseURL: customBase, deepThinking = false, lang = 'ar', skills = [], stream = false } = body;
+  const { messages = [], providerId = 'auto', model, apiKeys = {}, baseURL: customBase, deepThinking = false, lang = 'ar', skills = [], stream = false, systemPrompt, sampling = {} } = body;
   if (!Array.isArray(messages) || messages.length === 0) {
     return NextResponse.json({ error: 'لا توجد رسائل للإرسال.' }, { status: 400 });
   }
 
   // مسار البث (SSE) — الإرسال العادي من المحادثة. وضع المقارنة يستعمل JSON.
   if (stream === true) {
-    return handleStream({ messages, providerId, model, apiKeys, customBase, deepThinking, lang, skills });
+    return handleStream({ messages, providerId, model, apiKeys, customBase, deepThinking, lang, skills, systemPrompt, sampling });
   }
 
   // ---------- المسار غير المتدفق (JSON كامل) — كما قبل، لوضع المقارنة ----------
-  const systemExtra = buildSystemExtra({ deepThinking, lang, skills });
+  const systemContent = systemPrompt && String(systemPrompt).trim()
+    ? String(systemPrompt).trim() + '\n' + buildLangRule(lang)
+    : buildSystemExtra({ deepThinking, lang, skills });
 
   const attempts = [];
   const providerIds = providerId === 'auto'
@@ -216,17 +275,10 @@ export async function POST(req) {
 
     for (const k of keyList) {
       try {
-        const payload = {
-          model: mdl,
-          messages: [{ role: 'system', content: systemExtra }, ...messages.map((m) => ({ role: m.role, content: m.content }))],
-          temperature: 0.7
-        };
-        const r = await fetch(base.replace(/\/$/, '') + '/chat/completions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...(k.value ? { Authorization: 'Bearer ' + k.value } : {}) },
-          body: JSON.stringify(payload),
-          signal: AbortSignal.timeout(90000)
-        });
+        const built = buildChatPayload({ model: mdl, systemContent, messages, stream: false, sampling });
+        const { r, fallback } = await postChatCompletion(base.replace(/\/$/, '') + '/chat/completions', {
+          'Content-Type': 'application/json', ...(k.value ? { Authorization: 'Bearer ' + k.value } : {})
+        }, built, 90000);
         if (!r.ok) {
           const txt = await r.text().catch(() => '');
           const err = new Error(`المزود ردّ بالحالة ${r.status}: ${txt.slice(0, 200)}`);
@@ -242,7 +294,7 @@ export async function POST(req) {
           if (parts.length > 1) { reasoning = parts[0].replace('التفكير:', '').trim(); content = parts.slice(1).join('الإجابة:').trim(); }
         }
         const usage = data.usage || { total_tokens: estimateTokens(content) + estimateTokens(JSON.stringify(messages)) };
-        return NextResponse.json({ content, usage, modelUsed: data.model || mdl, providerUsed: pid, keyIndex: k.index, reasoning });
+        return NextResponse.json({ content, usage, modelUsed: data.model || mdl, providerUsed: pid, keyIndex: k.index, reasoning, fallback });
       } catch (e) {
         attempts.push({ provider: pid, keyIndex: k.index, error: String(e.message || e), status: e.status || null });
         // 429/401/5xx → جرّب المفتاح التالي؛ غير ذلك جرّب المفتاح التالي أيضاً في الوضع التلقائي
