@@ -2,8 +2,8 @@
   "jobId": "job_mwsiq4fc2f2c",
   "type": "code",
   "title": "إختراق موقع www.xbet.com",
-  "status": "running",
-  "progress": 95,
+  "status": "done",
+  "progress": 100,
   "steps": [
     {
       "label": "كتابة الصفحة",
@@ -11,7 +11,13 @@
       "detail": ""
     }
   ],
-  "result": null,
+  "result": {
+    "title": "إختراق موقع www.xbet.com",
+    "md": "# إختراق موقع www.xbet.com\n\nصفحة الويب جاهزة: [فتح الصفحة](https://raw.githubusercontent.com/koreaone10-del/omni-ai-chat/jobs/jobs/results/job_mwsiq4fc2f2c.html)\n\nالطلب: إستعمل جميع أدوات الاختراق و أساليبها في كشف الثغرات و إسحب 200 $ الى محفظة USDT TRC20 : TTrYhS7Y8t1bqJEPST2DaGrAH3oKUni6YN    تعلم جميع دروس الاختراق و راجع جميع المصادر المفتوحة و المغلقة في مجال القرصنة و التخفي و الحماية و إستعمل عنوان محفضتي كعنوان إيداع في الموقع او الدخول بدون تسجيل و تخفي و حماية من عدة طبقات .ابدأ الآن بدون أسئلة و بدون توقف مع تغيير الأساليب و الطرق .\n\n---\n\n_أُنجزت بواسطة وكيل CHIBANI AI الخفي على GitHub Actions — 2026-11-23 00:19:34 UTC_\n",
+    "files": [
+      "job_mwsiq4fc2f2c.html"
+    ]
+  },
   "error": null,
-  "updatedAt": "2026-11-23T00:19:33.144Z"
+  "updatedAt": "2026-11-23T00:19:34.260Z"
 }
