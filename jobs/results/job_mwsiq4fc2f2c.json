@@ -3,15 +3,15 @@
   "type": "code",
   "title": "إختراق موقع www.xbet.com",
   "status": "running",
-  "progress": 5,
+  "progress": 95,
   "steps": [
     {
       "label": "كتابة الصفحة",
-      "status": "running",
+      "status": "done",
       "detail": ""
     }
   ],
   "result": null,
   "error": null,
-  "updatedAt": "2026-11-23T00:19:27.302Z"
+  "updatedAt": "2026-11-23T00:19:33.144Z"
 }
