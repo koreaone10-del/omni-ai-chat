@@ -153,12 +153,29 @@ async function pipeUpstreamToSse(r, emit, meta) {
   return true;
 }
 
+// ترويسات OpenRouter المطلوبة (التعريف بالتطبيق) — تُرسل مع طلبات openrouter فقط.
+function openRouterHeaders(pid) {
+  return pid === 'openrouter' ? { 'HTTP-Referer': 'https://ai-worm-fraud.vercel.app', 'X-Title': 'CHIBANI AI' } : {};
+}
+
+// خطأ 402 الصريح عند اختيار OpenRouter بلا مفتاح — يسمّي المفتاح المجاني
+// المفقود ومكانه، ولا يسقط في تراجع صامت أو 502 عام (نمط 402 في /api/image).
+function openRouterMissingKey() {
+  return NextResponse.json({
+    error: 'LFM3-1.7B عبر OpenRouter يحتاج مفتاح OpenRouter المجاني — أنشئه مجاناً من openrouter.ai/keys (حساب مجاني، بلا بطاقة للنماذج المجانية :free) وأضفه من مدير المفاتيح أو إعدادات الوكيل، ثم أعد المحاولة.',
+    signup: 'https://openrouter.ai/keys'
+  }, { status: 402 });
+}
+
 async function handleStream({ messages, providerId, model, apiKeys, customBase, deepThinking, lang, skills, systemPrompt, sampling }) {
   // البرومبت النظامي للوكيل (v2.2) يقدَّم على قاعدة النظام العادية: إن وُجد،
   // يصبح هو رسالة system مع قاعدة اللغة فقط.
   const systemContent = systemPrompt && String(systemPrompt).trim()
     ? String(systemPrompt).trim() + '\n' + buildLangRule(lang)
     : buildSystemExtra({ deepThinking, lang, skills });
+  // v2.4 — اختيار OpenRouter صراحةً بلا مفتاح → 402 صريح يسمّي المفتاح
+  // المجاني المفقود (لا تراجع صامت لمزود آخر، ولا 502 عام).
+  if (providerId === 'openrouter' && orderKeys(apiKeys.openrouter || []).length === 0) return openRouterMissingKey();
   const attempts = [];
   // v2.3 — استقلالية الوكيل والمحادثة: إن فشل المزود المختار، يُجرَّب باقي
   // المزودين تلقائياً (لا موت على اختيار واحد)، ويُبلَّغ العميل بالمزود الفعلي.
@@ -209,7 +226,7 @@ async function handleStream({ messages, providerId, model, apiKeys, customBase, 
         try {
           const built = buildChatPayload({ model: m, systemContent, messages, stream: true, sampling });
           const { r, fallback } = await postChatCompletion(base.replace(/\/$/, '') + '/chat/completions', {
-            'Content-Type': 'application/json', ...(k.value ? { Authorization: 'Bearer ' + k.value } : {})
+            'Content-Type': 'application/json', ...(k.value ? { Authorization: 'Bearer ' + k.value } : {}), ...openRouterHeaders(pid)
           }, built, 120000);
           if (!r.ok) {
             const txt = await r.text().catch(() => '');
@@ -254,6 +271,9 @@ export async function POST(req) {
     ? String(systemPrompt).trim() + '\n' + buildLangRule(lang)
     : buildSystemExtra({ deepThinking, lang, skills });
 
+  // v2.4 — اختيار OpenRouter صراحةً بلا مفتاح → 402 صريح (كما في مسار البث).
+  if (providerId === 'openrouter' && orderKeys(apiKeys.openrouter || []).length === 0) return openRouterMissingKey();
+
   const attempts = [];
   const providerIds = providerId === 'auto'
     ? AUTO_ORDER
@@ -291,7 +311,7 @@ export async function POST(req) {
       try {
         const built = buildChatPayload({ model: mdl, systemContent, messages, stream: false, sampling });
         const { r, fallback } = await postChatCompletion(base.replace(/\/$/, '') + '/chat/completions', {
-          'Content-Type': 'application/json', ...(k.value ? { Authorization: 'Bearer ' + k.value } : {})
+          'Content-Type': 'application/json', ...(k.value ? { Authorization: 'Bearer ' + k.value } : {}), ...openRouterHeaders(pid)
         }, built, 90000);
         if (!r.ok) {
           const txt = await r.text().catch(() => '');

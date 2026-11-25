@@ -280,7 +280,7 @@ export default function Home() {
   const [agentTaskInput, setAgentTaskInput] = useState('');
   const [agentMsg, setAgentMsg] = useState('');
   const [agentTestText, setAgentTestText] = useState('');
-  const [agentNewKey, setAgentNewKey] = useState({ groq: '', fl: '', cf: '', cfAccount: '' });
+  const [agentNewKey, setAgentNewKey] = useState({ groq: '', openrouter: '', fl: '', cf: '', cfAccount: '' });
   const [cfAccountId, setCfAccountId] = useState('');
   const [jobs, setJobs] = useState([]);
   const [jobType, setJobType] = useState('research');
@@ -847,6 +847,15 @@ export default function Home() {
     setKeys((p) => addKeyToPool(p, 'groq', v));
     setAgentNewKey((p) => ({ ...p, groq: '' }));
     setAgentMsg('✓ أُضيف مفتاح Groq إلى تجمع المفاتيح.');
+  }
+  // v2.4 — مفتاح OpenRouter (لـ LFM3-1.7B) — نفس مكان تخزين Groq
+  // (omni_keys في localStorage) ونفس النمط، بلا قيمة في الكود.
+  function addAgentOpenRouterKey() {
+    const v = (agentNewKey.openrouter || '').trim();
+    if (!v) return;
+    setKeys((p) => addKeyToPool(p, 'openrouter', v));
+    setAgentNewKey((p) => ({ ...p, openrouter: '' }));
+    setAgentMsg('✓ أُضيف مفتاح OpenRouter إلى تجمع المفاتيح.');
   }
   function addAgentFlKey() {
     const v = (agentNewKey.fl || '').trim();
@@ -2376,9 +2385,14 @@ export default function Home() {
                   // v2.3 — الراوتر يحمل مفتاح Groq وحده: النماذج التي يخدمها Groq
                   // في الكتالوج تعمل الآن، وغيرها يحتاج مفتاح مزود في الراوتر.
                   const worksNow = isFL && !!catalogModels && (m.providers || []).includes('groq');
-                  const tag = m.id === 'auto' ? 'تلقائي' : (isFL && catalogModels) ? (worksNow ? tt('worksNow') : tt('routerKeyNote')) : hasKey ? (p.id === 'groq' ? 'الأسرع' : p.needsKey ? 'بمفتاحك' : 'مجاني') : 'يحتاج مفتاحاً';
+                  // v2.4 — LFM3 لا يخدمه Groq (في الكتالوج: openrouter/kilo/kenari)؛
+                  // شارة «يعمل الآن» له مرهونة بمفتاح OpenRouter محفوظ فقط، في
+                  // ورقة OpenRouter وفي كتالوج FreeLLMAPI معاً.
+                  const isLfm3 = String(m.id || '').includes('lfm-3-1.7b');
+                  const hasOrKey = (keys.openrouter || []).some((k) => k.status !== 'exhausted');
+                  const tag = m.id === 'auto' ? 'تلقائي' : isLfm3 ? (hasOrKey ? tt('worksNow') : tt('openRouterKeyNote')) : (isFL && catalogModels) ? (worksNow ? tt('worksNow') : tt('routerKeyNote')) : hasKey ? (p.id === 'groq' ? 'الأسرع' : p.needsKey ? 'بمفتاحك' : 'مجاني') : 'يحتاج مفتاحاً';
                   return (
-                    <button key={m.id} className={'model-row' + (on ? ' on' : '')} onClick={() => { setProviderId(p.id); setModel(m.id); setCompareOn(false); setModelsSheet(null); if (p.id === 'freellmapi' && !flKeys.length && m.id !== 'auto') setDrawer('freellmapi'); }}>
+                    <button key={m.id} className={'model-row' + (on ? ' on' : '')} onClick={() => { const useOr = isLfm3 && hasOrKey; setProviderId(useOr ? 'openrouter' : p.id); setModel(m.id); setCompareOn(false); setModelsSheet(null); if (p.id === 'freellmapi' && !flKeys.length && m.id !== 'auto' && !useOr) setDrawer('freellmapi'); }}>
                       <span className="model-row-main">
                         <span className="model-row-name">{m.id === 'auto' ? 'auto — يختار الراوتر' : m.name}</span>
                         <span className="model-row-desc">{m.id === 'auto' ? 'يختار الراوتر أفضل نموذج متاح تلقائياً' : (m.desc || '')}</span>
@@ -2863,6 +2877,9 @@ export default function Home() {
               <p style={{ fontSize: 12.5 }}>{tt('agentKeysNote')}</p>
               <div className="field"><label>{tt('agentGroqKey')} {(keys.groq || []).length ? '· ✓ ' + keys.groq.length + ' محفوظ' : ''}</label>
                 <div style={{ display: 'flex', gap: 8 }}><input style={{ flex: 1 }} type="password" value={agentNewKey.groq} onChange={(e) => setAgentNewKey((p) => ({ ...p, groq: e.target.value }))} dir="ltr" placeholder="gsk_…" autoComplete="off" /><button className="btn small" onClick={addAgentGroqKey}>إضافة</button></div>
+              </div>
+              <div className="field"><label>{tt('agentOpenRouterKey')} {(keys.openrouter || []).length ? '· ✓ ' + keys.openrouter.length + ' محفوظ' : ''}</label>
+                <div style={{ display: 'flex', gap: 8 }}><input style={{ flex: 1 }} type="password" value={agentNewKey.openrouter} onChange={(e) => setAgentNewKey((p) => ({ ...p, openrouter: e.target.value }))} dir="ltr" placeholder="sk-or-…" autoComplete="off" /><button className="btn small" onClick={addAgentOpenRouterKey}>إضافة</button></div>
               </div>
               <div className="field"><label>{tt('agentFlKey')} {flKeys.length ? '· ✓ ' + flKeys.length + ' محفوظ' : ''}</label>
                 <div style={{ display: 'flex', gap: 8 }}><input style={{ flex: 1 }} type="password" value={agentNewKey.fl} onChange={(e) => setAgentNewKey((p) => ({ ...p, fl: e.target.value }))} dir="ltr" placeholder="freellmapi-…" autoComplete="off" /><button className="btn small" onClick={addAgentFlKey}>إضافة</button></div>
